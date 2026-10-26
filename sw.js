@@ -1,5 +1,5 @@
 // Network first, so staff always get the newest rota; falls back to the last copy when offline.
-const C='rota-v1';
+const C='rota-v2';
 self.addEventListener('install',e=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch',e=>{
