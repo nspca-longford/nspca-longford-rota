@@ -43,6 +43,9 @@ button,input,select{font:inherit}
 button{cursor:pointer}
 button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-top:16px}
+.wrap.wide{max-width:1800px}
+.wrap.wide>*{width:100%;max-width:820px}
+.wrap.wide>.gridwrap{max-width:none}
 .editbar{display:flex;align-items:center;gap:10px;background:var(--charcoal);color:#fff;border-radius:12px;padding:10px 12px}
 .editbar .who{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pill{background:var(--lichen);color:var(--charcoal);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px}
@@ -114,7 +117,14 @@ table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-num
 .wk tbody td{--h:210;background:hsl(var(--h) var(--tint-s) calc(var(--tint-l) + 3%))}
 .wk td div{white-space:nowrap}
 .wk .me{background:var(--hl-bg);color:var(--hl-fg);border-radius:4px;padding:0 4px;font-weight:700}
-.mo{font-size:.76rem}
+.mo{font-size:.76rem;width:100%}
+@media (min-width:900px){
+  .mo{font-size:.86rem}
+  .mo th,.mo td{height:36px;min-width:34px}
+  .mo td button{min-height:36px}
+  .mo th.nm{min-width:130px;font-size:.9rem}
+  .mo thead th{padding:5px 1px}
+}
 .mo th,.mo td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center;padding:0;min-width:38px;height:30px}
 .mo thead th{background:var(--surface);color:var(--muted);font-weight:700;line-height:1.1;padding:3px 1px}
 .mo thead th small{display:block;font-weight:400;font-size:.66rem;text-transform:uppercase}
@@ -130,6 +140,13 @@ table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-num
 .mo td.cur{box-shadow:inset 2px 0 var(--fg),inset -2px 0 var(--fg)}
 .mo td button{width:100%;height:100%;min-height:30px;border:0;background:transparent;color:inherit;font-weight:inherit;font-size:inherit;padding:0}
 .mo td.chg button{box-shadow:inset 0 0 0 2px var(--fg)}
+.mo td.sel button{box-shadow:inset 0 0 0 3px var(--accent);background:rgb(29 95 174/.22)}
+.bar .in.col{flex-direction:column;align-items:stretch;gap:8px}
+.bar .row{display:flex;align-items:center;gap:10px}
+.bar .row b{flex:1;font-size:.95rem}
+.bar .hint{font-size:.8rem;color:var(--muted);font-weight:400}
+.opts.six{grid-template-columns:repeat(6,minmax(0,1fr))}
+.opts.six button{min-height:46px;font-size:14px}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal .dh{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;font-weight:700}
 .cal .c{--h:28;border-radius:8px;padding:6px 3px;min-height:64px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:.74rem;font-weight:700;text-align:center;line-height:1.15}
@@ -233,7 +250,7 @@ const lsSet=(k,v)=>{try{if(v==null)localStorage.removeItem(k);else localStorage.
 const S={view:"day",cur:today0(),my:null,who:"",session:null,isAdmin:false,editing:false,
   staff:[],status:new Map(),place:new Map(),loaded:new Set(),pub:null,
   pend:{status:new Map(),place:new Map()},sheet:null,note:"",noteErr:false,toast:"",busy:false,
-  offline:false,signinErr:"",confirmRm:"",loading:true};
+  offline:false,signinErr:"",confirmRm:"",loading:true,sel:[]};
 S.my={y:S.cur.getFullYear(),m:S.cur.getMonth()};
 
 /* ---------- connection ---------- */
@@ -431,7 +448,7 @@ function monthView(){
   for(const p of monthPeople()){
     const hue=TEAM_HUE[p.team]??210;
     h+=`<tr class="${p.name===S.who?"me":""}"><th class="nm" style="--h:${hue}">${esc(p.name)}</th>`;
-    for(const x of days){const d=iso(x),c=stOf(d,p.name),cls="c-"+(c||"N")+(isToday(x)?" cur":"")+(S.pend.status.has(sk(d,p.name))?" chg":"");
+    for(const x of days){const d=iso(x),c=stOf(d,p.name),cls="c-"+(c||"N")+(isToday(x)?" cur":"")+(S.pend.status.has(sk(d,p.name))?" chg":"")+(S.editing&&S.sel.some(q=>q.k===sk(d,p.name))?" sel":"");
       const lbl=c?LABEL[c]:"";
       h+=S.editing?`<td class="${cls}" style="--h:${hue}"><button data-act="cell" data-d="${d}" data-n="${esc(p.name)}" aria-label="${esc(p.name)}, ${esc(dayLong(x))}: ${c?LABEL[c]:"not set"}">${lbl}</button></td>`
                   :`<td class="${cls}" style="--h:${hue}">${lbl}</td>`;}
@@ -439,7 +456,7 @@ function monthView(){
   }
   h+=`</tbody></table></div>`;
   h+=`<div class="legend">${TEAMS.map(([t,hh])=>`<span><i style="background:hsl(${hh} 70% 50%)"></i>${esc(t)}</span>`).join("")}${S.session?`<span><i class="c-A"></i>A/L</span><span><i class="c-S"></i>Sick</span><span><i class="c-T"></i>TOIL</span>`:""}<span><i class="c-O"></i>Off</span></div>`;
-  if(S.editing) h+=`<p class="sub noprint">Tap a square to change it. Marking someone off takes them off that day's sections too.</p>`;
+  if(S.editing) h+=`<p class="sub noprint">Tap squares to select them, then choose In, Off, A/L, Sick or TOIL. To select a run of days, tap the first day then the last day in the same row. Marking someone off takes them off that day's sections too.</p>`;
   h+=`<div class="noprint"><button class="btn" data-act="print">Print this month</button></div>`;
   return h;
 }
@@ -477,6 +494,14 @@ function footer(){
 
 function overlay(){
   let h="";
+  if(S.editing&&S.sel.length&&!S.sheet){
+    const ppl=[...new Set(S.sel.map(q=>q.n))],ds=S.sel.map(q=>q.d).sort(),a=fromIso(ds[0]),b=fromIso(ds[ds.length-1]);
+    const sum=ppl.length===1?esc(ppl[0])+" · "+(ds.length===1?DN[a.getDay()]+" "+a.getDate()+" "+MN[a.getMonth()]:ds.length+" days, "+DN[a.getDay()]+" "+a.getDate()+(a.getMonth()!==b.getMonth()?" "+MN[a.getMonth()]:"")+" – "+DN[b.getDay()]+" "+b.getDate()+" "+MN[b.getMonth()]):S.sel.length+" squares selected";
+    const hue=ppl.length===1?hueOf(ppl[0]):28;
+    return h+`<div class="bar"><div class="in col"><div class="row"><b>${sum}</b><button class="btn small" data-act="selclear">Cancel</button></div>
+    <div class="opts six">${["X","O","A","S","T"].map(k=>`<button class="c-${k}" style="--h:${hue}" data-act="setsel" data-c="${k}">${LABEL[k]}</button>`).join("")}<button class="c-N" data-act="setsel" data-c="">Clear</button></div>
+    ${S.sel.length===1?`<div class="hint">Tap another day in ${esc(ppl[0])}'s row to select every day between.</div>`:""}</div></div>`;
+  }
   if(S.editing&&pendCount()&&!S.sheet){
     const n=pendCount();
     h+=`<div class="bar"><div class="in"><span>${n===1?"1 change":n+" changes"} not published</span><button class="btn" data-act="undo"${S.busy?" disabled":""}>Undo</button><button class="btn dark" data-act="publish"${S.busy?" disabled":""}>${S.busy?"Publishing…":"Publish"}</button></div></div>`;
@@ -516,8 +541,10 @@ function render(){
   const g=document.getElementById("mgrid"),gl=g?g.scrollLeft:null;
   let body="";
   if(S.view==="day")body=dayView();else if(S.view==="week")body=weekView();else if(S.view==="month")body=monthView();else if(S.view==="person")body=personView();else body=staffView();
-  document.getElementById("app").innerHTML=header()+body+footer();
+  const app=document.getElementById("app");app.classList.toggle("wide",S.view==="month"||S.view==="week");
+  app.innerHTML=header()+body+footer();
   document.getElementById("overlay").innerHTML=overlay();
+  document.body.style.paddingBottom=S.editing&&S.sel.length?"calc(env(safe-area-inset-bottom,0px) + 210px)":"";
   const ng=document.getElementById("mgrid");
   if(ng){ if(gl!==null) ng.scrollLeft=gl; else if(S.my.y===today0().getFullYear()&&S.my.m===today0().getMonth()) ng.scrollLeft=Math.max(0,(today0().getDate()-3)*38); }
   const sel=document.getElementById("who");
@@ -585,6 +612,7 @@ document.addEventListener("click",async e=>{
   const a=el.dataset.act;
   if(a==="scrim"){if(e.target===el&&S.sheet&&!S.busy){S.sheet=null;render()}return}
   if(a!=="rmstaff") S.confirmRm="";
+  if(["view","prevm","nextm","done","signout","edit"].includes(a)) S.sel=[];
   switch(a){
     case "view":S.view=el.dataset.v;if(S.view==="person"&&!S.who){const f=activeStaff()[0];if(f)S.who=f.name}go();break;
     case "day":S.cur=fromIso(el.dataset.d);render();break;
@@ -608,7 +636,20 @@ document.addEventListener("click",async e=>{
     case "secrm":{const d=iso(S.cur),s=SECTIONS[S.sheet.i][0];setPl(d,s,plOf(d,s).filter(x=>x!==el.dataset.n));render();break}
     case "secadd":{const d=iso(S.cur),s=SECTIONS[S.sheet.i][0],n=el.dataset.n;setPl(d,s,plOf(d,s).concat([n]));if(stOf(d,n)===null)setSt(d,n,"X");render();break}
     case "fixoff":{const d=iso(S.cur),s=el.dataset.s;setPl(d,s,plOf(d,s).filter(x=>x!==el.dataset.n));render();break}
-    case "cell":S.sheet={type:"cell",d:el.dataset.d,n:el.dataset.n};render();break;
+    case "cell":{const d=el.dataset.d,n=el.dataset.n,k=sk(d,n),i=S.sel.findIndex(q=>q.k===k);
+      if(i>=0) S.sel.splice(i,1);
+      else if(S.sel.length===1&&S.sel[0].n===n){const x0=fromIso(S.sel[0].d),x1=fromIso(d),lo=x0<x1?x0:x1,hi=x0<x1?x1:x0;S.sel=[];
+        for(let x=lo;x<=hi;x=addDays(x,1))S.sel.push({k:sk(iso(x),n),d:iso(x),n})}
+      else S.sel.push({k,d,n});
+      render();break}
+    case "selclear":S.sel=[];render();break;
+    case "setsel":{const code=el.dataset.c||null,off=[];let madeIn=0;
+      for(const {d,n} of S.sel){const was=stOf(d,n),pl=placedIn(d,n);setSt(d,n,code);
+        if(code&&code!=="X"&&pl.length){for(const s of pl)setPl(d,s,plOf(d,s).filter(k=>k!==n));const x=fromIso(d);off.push(n+" "+DN[x.getDay()]+" "+x.getDate())}
+        else if(code==="X"&&was!=="X"&&!pl.length) madeIn++;}
+      S.sel=[];S.noteErr=false;
+      S.note=off.length?"Taken off their sections: "+off.slice(0,4).join(", ")+(off.length>4?" and "+(off.length-4)+" more":"")+".":madeIn?"Marked in. Place them on the Day tab.":"";
+      render();break}
     case "setcode":{const {d,n}=S.sheet,code=el.dataset.c||null,was=stOf(d,n),pl=placedIn(d,n),x=fromIso(d);
       setSt(d,n,code);S.sheet=null;S.noteErr=false;S.note="";
       if(code&&code!=="X"&&pl.length){for(const s of pl)setPl(d,s,plOf(d,s).filter(k=>k!==n));S.note=n+" taken off "+pl.join(", ")+" on "+dayLong(x)+"."}
