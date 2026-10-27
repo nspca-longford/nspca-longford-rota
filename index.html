@@ -66,8 +66,56 @@ h1{font-family:var(--display);font-weight:800;font-size:1.55rem;margin:0;letter-
 h2{font-family:var(--display);font-weight:800;font-size:1.2rem;margin:0}
 .sub{color:var(--muted);font-size:.95rem}
 .updated{font-size:.85rem;color:var(--muted)}
-.tabs{display:grid;gap:4px;background:var(--line);padding:4px;border-radius:10px}
-.tabs button{border:0;background:transparent;color:var(--muted);padding:9px 2px;border-radius:7px;font-weight:700;font-size:.92rem;min-height:42px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--line);padding:4px;border-radius:10px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1 0 auto}
+.badge{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:99px;font-size:12px;line-height:20px;background:#d92d20;color:#fff}
+.card.me-card{flex-direction:row;align-items:center;gap:12px}
+.avatar{--h:28;width:50px;height:50px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:20px;
+  background:hsl(var(--h) 70% 82%);color:hsl(var(--h) 60% 24%);border:3px solid hsl(var(--h) 70% 48%)}
+.me-card b{font-size:1.1rem}
+.wkrow{display:flex;align-items:center;gap:10px;font-size:.95rem}
+.wkrow .d{width:4.6rem;font-weight:700}
+.wkrow .code{--h:28;width:46px;text-align:center;border-radius:6px;padding:2px 0;font-weight:700;font-size:.8rem}
+.wkrow .code.c-X{background:hsl(var(--h) 75% calc(var(--tint-l) - 2%));color:hsl(var(--h) 60% var(--ink-l))}
+.wkrow .code.c-N{background:var(--bg);color:var(--muted);border:1px dashed var(--line)}
+.wkrow .w{flex:1;color:var(--muted);min-width:0}
+.reqrow{display:flex;align-items:center;gap:8px}
+.reqrow>span{flex:1;min-width:0}
+.pill-s{font-weight:700;font-size:12px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill-s.waiting{background:var(--warn-bg);color:var(--warn-fg)}
+.pill-s.approved{background:#e3f4ea;color:#1f7a45}
+.pill-s.declined{background:#fde8e6;color:#9b1c13}
+.bamboo{background:#eef3fb;color:#1b2a44;border-radius:10px;padding:10px 12px;font-size:.9rem;display:flex;flex-direction:column;gap:2px}
+.toggle{flex:none;width:54px;height:32px;border-radius:99px;border:0;padding:3px;display:flex;background:#c8ced8;justify-content:flex-start}
+.toggle[aria-pressed="true"]{background:var(--charcoal);justify-content:flex-end}
+.toggle i{width:26px;height:26px;border-radius:50%;background:#fff;display:block}
+.toggle[aria-pressed="true"] i{background:var(--lichen)}
+.req{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.req.done{opacity:.85}
+.req .top{display:flex;align-items:center;gap:8px}
+.req .top b{flex:1;font-size:1.05rem}
+.req .what{font-weight:700}
+.req .nt{font-size:.9rem;color:var(--muted);font-style:italic}
+.req .when{font-size:.8rem;color:var(--muted)}
+.req .chg{background:var(--bg);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;font-size:.9rem}
+.req .chg .h,.sheet .h2{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.req .warnbox{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-fg);border-radius:8px;padding:8px 10px;font-size:.9rem;font-weight:700}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn.danger{background:#b42318;border-color:#b42318;color:#fff}
+.days14{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.days14 button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:5px 0;display:flex;flex-direction:column;align-items:center;min-width:0;min-height:60px}
+.days14 button[aria-pressed="true"]{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
+.days14 .dn{font-size:.66rem;font-weight:700;text-transform:uppercase;opacity:.8}
+.days14 .dd{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.days14 .cd{font-size:.62rem;font-weight:700}
+.chipbtn{border-radius:99px;padding:0 14px;min-height:40px;font-size:15px;font-weight:700;background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.chipbtn[aria-pressed="true"]{background:var(--charcoal);color:var(--lichen);border-color:var(--charcoal)}
+textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px;resize:vertical;min-height:64px}
+.loginrow{display:grid;grid-template-columns:7rem 1fr auto;gap:8px;align-items:center;padding:4px 0}
+.loginrow span{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:420px){.loginrow{grid-template-columns:1fr auto}.loginrow span{grid-column:1/-1}}
+.tabs button{border:0;background:transparent;color:var(--muted);padding:9px 10px;border-radius:7px;font-weight:700;font-size:.92rem;min-height:42px;white-space:nowrap}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.12)}
 .navrow{display:flex;align-items:center;gap:8px}
 .navrow .lbl{flex:1;text-align:center;font-weight:700}
@@ -231,7 +279,8 @@ table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-num
 /* ===== Connection — fill these two in (same values as the dog app) ===== */
 const CONFIG = {
   url: "https://sbajswwuykvjhtoehfps.supabase.co",
-  key: "sb_publishable_uP40lclXeaMzJ__zFQESHQ__XSLqJgK"
+  key: "sb_publishable_uP40lclXeaMzJ__zFQESHQ__XSLqJgK",
+  push: "BPInq1dBrywBwlShU1fa_4-qq0U01XAm8MX0utXP6pdW1sXZT_5WleHXcGufRE0AR_lTdG-4TWCLik8WS-JhIU8"   // notifications public key (pairs with VAPID_PRIVATE_KEY in Supabase)
 };
 /* ======================================================================= */
 
@@ -262,7 +311,8 @@ const lsSet=(k,v)=>{try{if(v==null)localStorage.removeItem(k);else localStorage.
 const S={view:"day",cur:today0(),my:null,who:"",session:null,isAdmin:false,editing:false,
   staff:[],status:new Map(),place:new Map(),loaded:new Set(),pub:null,
   pend:{status:new Map(),place:new Map()},sheet:null,note:"",noteErr:false,toast:"",busy:false,
-  offline:false,signinErr:"",confirmRm:"",loading:true,sel:[]};
+  offline:false,signinErr:"",confirmRm:"",loading:true,sel:[],myName:null,reqs:[],logins:[],decl:null};
+const BAMBOO_URL=""; // paste your BambooHR address here to make the BambooHR mention a link
 S.my={y:S.cur.getFullYear(),m:S.cur.getMonth()};
 
 /* ---------- connection ---------- */
@@ -280,7 +330,7 @@ async function refreshSession(){
     setSession(await r.json());
   }catch(e){ dropSession(); }
 }
-function dropSession(){S.session=null;S.isAdmin=false;S.editing=false;lsSet("nspca-rota-session",null)}
+function dropSession(){S.session=null;S.isAdmin=false;S.editing=false;S.myName=null;S.reqs=[];S.logins=[];lsSet("nspca-rota-session",null)}
 async function bearer(){
   if(!S.session) return CONFIG.key;
   if(S.session.expires_at*1000<Date.now()+60000) await refreshSession();
@@ -319,12 +369,18 @@ async function checkAdmin(){
   if(!S.session){S.isAdmin=false;return}
   try{const r=await api("rota_admins?select=email");S.isAdmin=!!(r&&r.length)}catch(e){S.isAdmin=false}
 }
+async function loadMe(){
+  if(!S.session){S.myName=null;S.reqs=[];S.logins=[];return}
+  try{S.myName=await api("rpc/rota_my_name",{method:"POST",body:{}})||null}catch(e){S.myName=null}
+  try{S.reqs=await api("rota_requests?select=*&order=created_at.desc&limit=200")||[]}catch(e){S.reqs=[]}
+  if(S.isAdmin){try{S.logins=await api("rota_logins?select=email,name&order=name.asc")||[]}catch(e){S.logins=[]}}
+}
 async function ensureRange(a,b){
   const months=[];let d=new Date(a.getFullYear(),a.getMonth(),1);
   while(d<=b){months.push([d.getFullYear(),d.getMonth()]);d=new Date(d.getFullYear(),d.getMonth()+1,1)}
   const need=months.filter(([y,m])=>!S.loaded.has(mkey(y,m)));
   if(!need.length) return;
-  const tbl=S.session?"rota_status":"rota_public_status";
+  const tbl="rota_status";
   await Promise.all(need.map(async([y,m])=>{
     const f=iso(new Date(y,m,1)),l=iso(new Date(y,m+1,0)),pre=mkey(y,m)+"-";
     const [st,pl]=await Promise.all([
@@ -340,6 +396,8 @@ async function ensureRange(a,b){
 }
 function visibleRange(){
   if(S.view==="month"||S.view==="person"){return[new Date(S.my.y,S.my.m,1),new Date(S.my.y,S.my.m+1,0)]}
+  if(S.view==="me") return [today0(),addDays(today0(),13)];
+  if(S.view==="requests"){const ds=S.reqs.flatMap(r=>r.days||[]).sort();return [ds.length?fromIso(ds[0]):today0(),ds.length?fromIso(ds[ds.length-1]):today0()]}
   const ws=monday(S.cur);return[ws,addDays(ws,6)];
 }
 async function go(){
@@ -380,7 +438,7 @@ const isToday=d=>iso(d)===iso(today0());
 function header(){
   let h="";
   if(S.editing) h+=`<div class="editbar noprint"><span class="pill">Editing</span><span class="who">${esc(S.session.email)}</span><button class="btn ghost-l" data-act="done">Done</button></div>`;
-  const per=(S.view==="month"||S.view==="person")?ML[S.my.m]+" "+S.my.y:(S.view==="staff"?"Staff list":weekLabel(monday(S.cur)));
+  const per=(S.view==="month"||S.view==="person")?ML[S.my.m]+" "+S.my.y:S.view==="staff"?"Staff list":S.view==="me"?"My profile":S.view==="requests"?"Change requests":weekLabel(monday(S.cur));
   h+=`<div class="titlerow"><div><h1>NSPCA Longford Rota</h1><div class="sub">${esc(per)}</div>`;
   if(S.pub&&S.pub.at){const t=new Date(S.pub.at);h+=`<div class="updated">Updated ${isToday(t)?"today":DN[t.getDay()]+" "+t.getDate()+" "+MN[t.getMonth()]} at ${pad(t.getHours())}:${pad(t.getMinutes())}</div>`}
   h+=`</div>`;
@@ -390,16 +448,18 @@ function header(){
   else if(S.offline) h+=`<div class="note err"><span>No connection. Showing the last copy saved on this phone.</span><button data-act="retry">Retry</button></div>`;
   if(S.note) h+=`<div class="note${S.noteErr?" err":""} noprint"><span>${esc(S.note)}</span><button data-act="clearnote" aria-label="Dismiss">✕</button></div>`;
   const tabs=[["day","Day"],["week","Week"],["month","Month"],["person","Person"]];
+  if(S.session) tabs.push(["me","Me"]);
+  if(S.isAdmin){const w=S.reqs.filter(r=>r.status==="waiting").length;tabs.push(["requests","Requests"+(w?`<span class="badge">${w}</span>`:"")])}
   if(S.editing) tabs.push(["staff","Staff"]);
   let tb="";
-  tb+=`<div class="tabs noprint" role="tablist" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([v,l])=>`<button role="tab" data-act="view" data-v="${v}" aria-selected="${S.view===v}">${l}</button>`).join("")}</div>`;
+  tb+=`<div class="tabs noprint" role="tablist">${tabs.map(([v,l])=>`<button role="tab" data-act="view" data-v="${v}" aria-selected="${S.view===v}">${l}</button>`).join("")}</div>`;
   if(S.view==="day"||S.view==="week"){
     const ws=monday(S.cur),thisWeek=iso(ws)===iso(monday(today0()));
     tb+=`<div class="navrow noprint"><button class="step" data-act="prevw" aria-label="Previous week">‹</button><span class="lbl">${thisWeek?"This week":esc(weekLabel(ws))}</span>${thisWeek?"":`<button class="btn small" data-act="thisweek">Today</button>`}<button class="step" data-act="nextw" aria-label="Next week">›</button></div>`;
   }else if(S.view==="month"||S.view==="person"){
     tb+=`<div class="navrow noprint"><button class="step" data-act="prevm" aria-label="Previous month">‹</button><span class="lbl">${ML[S.my.m]} ${S.my.y}</span><button class="step" data-act="nextm" aria-label="Next month">›</button></div>`;
   }
-  if(S.view!=="staff"){
+  if(!["staff","me","requests"].includes(S.view)){
     const names=activeStaff().map(p=>p.name);
     tb+=`<div class="ctrl noprint"><label for="who">${S.view==="person"?"Person":"Highlight"}</label><select id="who">${S.view==="person"?"":`<option value="">Nobody</option>`}${names.map(n=>`<option${n===S.who?" selected":""}>${esc(n)}</option>`).join("")}</select></div>`;
   }
@@ -436,7 +496,7 @@ function dayView(){
     h+=`</div>`;
   }
   const off=activeStaff().filter(p=>{const c=stOf(d,p.name);return c&&c!=="X"});
-  if(off.length) h+=`<div class="card"><span class="h">Not in today</span><div class="chips">${off.map(p=>{const c=stOf(d,p.name);return `<span class="st ${c}">${esc(p.name)}${S.session&&c!=="O"?" · "+LABEL[c]:""}</span>`}).join("")}</div></div>`;
+  if(off.length) h+=`<div class="card"><span class="h">Not in today</span><div class="chips">${off.map(p=>{const c=stOf(d,p.name);return `<span class="st ${c}">${esc(p.name)}${c!=="O"?" · "+LABEL[c]:""}</span>`}).join("")}</div></div>`;
   return h;
 }
 
@@ -469,7 +529,7 @@ function monthView(){
     h+=`</tr>`;
   }
   h+=`</tbody></table></div>`;
-  h+=`<div class="legend">${TEAMS.map(([t,hh])=>`<span><i style="background:hsl(${hh} 70% 50%)"></i>${esc(t)}</span>`).join("")}<span><b>X</b>&nbsp;= in</span>${S.session?`<span><i class="c-A"></i>A/L</span><span><i class="c-S"></i>SICK</span><span><i class="c-T"></i>TOIL</span>`:""}<span><i class="c-O"></i>OFF</span></div>`;
+  h+=`<div class="legend">${TEAMS.map(([t,hh])=>`<span><i style="background:hsl(${hh} 70% 50%)"></i>${esc(t)}</span>`).join("")}<span><b>X</b>&nbsp;= in</span><span><i class="c-A"></i>A/L</span><span><i class="c-S"></i>SICK</span><span><i class="c-T"></i>TOIL</span><span><i class="c-O"></i>OFF</span></div>`;
   if(S.editing) h+=`<p class="sub noprint">Tap squares to select them, then choose In, Off, A/L, Sick or TOIL. To select a run of days, tap the first day then the last day in the same row. Marking someone off takes them off that day's sections too.</p>`;
   h+=`<div class="noprint"><button class="btn" data-act="print">Print this month</button></div>`;
   return h;
@@ -484,8 +544,82 @@ function personView(){
   for(let i=1;i<=n;i++){const x=new Date(y,m,i),d=iso(x),c=stOf(d,who);if(c)cnt[c]++;
     const where=c==="X"?placedIn(d,who).join(", "):"";
     cells+=`<div class="c c-${c||"N"}${isToday(x)?" cur":""}" style="--h:${hue}"><span class="n">${i}</span>${c?LABEL[c]:"–"}${where?`<small>${esc(where)}</small>`:""}</div>`;}
-  return `<h2>${esc(who)} · ${ML[m]}</h2><div class="counts"><span><b>${cnt.X}</b> in</span><span><b>${cnt.O+(S.session?0:cnt.A+cnt.S+cnt.T)}</b> off</span>${S.session&&cnt.A?`<span><b>${cnt.A}</b> A/L</span>`:""}${S.session&&cnt.S?`<span><b>${cnt.S}</b> sick</span>`:""}${S.session&&cnt.T?`<span><b>${cnt.T}</b> TOIL</span>`:""}</div>
+  return `<h2>${esc(who)} · ${ML[m]}</h2><div class="counts"><span><b>${cnt.X}</b> in</span><span><b>${cnt.O}</b> off</span>${cnt.A?`<span><b>${cnt.A}</b> A/L</span>`:""}${cnt.S?`<span><b>${cnt.S}</b> sick</span>`:""}${cnt.T?`<span><b>${cnt.T}</b> TOIL</span>`:""}</div>
   <div class="cal">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(x=>`<div class="dh">${x}</div>`).join("")}${cells}</div>`;
+}
+
+const KIND={swap:"Swap",toil:"TOIL",sick:"Off sick",cant:"Can't do shift"};
+const KIND_BTN=[["swap","Swap a shift"],["toil","TOIL"],["sick","Off sick"],["cant","Can't do a shift"]];
+const dShort=d=>{const x=fromIso(d);return DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()]};
+function reqWhat(r){
+  const ds=(r.days||[]).slice().sort();
+  if(r.kind==="swap") return "Swap · "+dShort(ds[0])+" with "+r.swap_with;
+  return KIND[r.kind]+" · "+(ds.length<=3?ds.map(dShort).join(", "):dShort(ds[0])+" – "+dShort(ds[ds.length-1])+" ("+ds.length+" days)");
+}
+const whenText=t=>{const x=new Date(t);return (isToday(x)?"today":DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()])+" "+pad(x.getHours())+":"+pad(x.getMinutes())};
+const meName=()=>S.myName||(S.session?S.session.email.split("@")[0]:"");
+const bambooHtml=()=>`<div class="bamboo"><b>Annual leave? Book it in ${BAMBOO_URL?`<a href="${esc(BAMBOO_URL)}" target="_blank" rel="noopener">BambooHR</a>`:"BambooHR"}.</b><span>Leave isn't requested here. Once BambooHR approves it, an admin puts it on the rota as A/L.</span></div>`;
+
+/* What approving a request would do: the change list, warnings, and the edits to make */
+function planRequest(r){
+  const R=r.name,out={changes:[],warn:[],ops:[]};
+  for(const d of (r.days||[]).slice().sort()){
+    const dl=dShort(d),pl=placedIn(d,R),c=stOf(d,R);
+    if(r.kind==="swap"){
+      const O=r.swap_with,co=stOf(d,O);
+      out.changes.push(R+": "+(pl.length?pl.join(" + "):c?LABEL[c]:"–")+" → OFF ("+dl+")");
+      out.changes.push(O+": "+(co?LABEL[co]:"–")+" → X"+(pl.length?", on "+pl.join(" + "):"")+" ("+dl+")");
+      if(co&&co!=="O") out.warn.push(O+" is "+LABEL[co]+" on "+dl+", not OFF any more.");
+      out.ops.push(()=>{setSt(d,R,"O");setSt(d,O,"X");for(const s of pl)setPl(d,s,plOf(d,s).map(n=>n===R?O:n).filter((n,i,a)=>a.indexOf(n)===i))});
+    }else{
+      const code={toil:"T",sick:"S",cant:"O"}[r.kind];
+      out.changes.push(R+": "+(c?LABEL[c]:"–")+" → "+LABEL[code]+" ("+dl+")"+(pl.length?", comes off "+pl.join(", "):""));
+      for(const s of pl){const rest=plOf(d,s).filter(n=>n!==R);
+        if(!rest.length) out.warn.push(s+" would have nobody on "+dl+".");
+        else if(rest.length===1) out.warn.push(s+" would be down to "+rest[0]+" only on "+dl+".");}
+      out.ops.push(()=>{setSt(d,R,code);for(const s of pl)setPl(d,s,plOf(d,s).filter(n=>n!==R))});
+    }
+  }
+  return out;
+}
+
+function meView(){
+  if(!S.session) return `<div class="card"><span>Sign in to see your profile and ask for changes.</span><button class="btn dark" data-act="signin">Sign in</button></div>`;
+  if(!S.myName) return `<div class="card"><span class="h">Not linked yet</span><span>Your login (${esc(S.session.email)}) isn't linked to a name on the rota yet. Ask Shane, Ciara or Sarah O'Carroll to link it.</span></div>`;
+  const me=S.staff.find(p=>p.name===S.myName)||{team:""},hue=TEAM_HUE[me.team]??210;
+  let h=`<div class="card me-card"><span class="avatar" style="--h:${hue}">${esc(S.myName[0]||"?")}</span><div><b>${esc(S.myName)}</b><div class="sub">${esc(me.team||"")}</div><div class="sub">${esc(S.session.email)}</div></div></div>`;
+  h+=`<div class="card"><span class="h">My next 7 days</span>`;
+  for(let i=0;i<7;i++){const x=addDays(today0(),i),d=iso(x),c=stOf(d,S.myName),pl=placedIn(d,S.myName);
+    h+=`<div class="wkrow"><span class="d">${i===0?"Today":DN[x.getDay()]+" "+x.getDate()}</span><span class="code c-${c||"N"}" style="--h:${hue}">${c?LABEL[c]:"–"}</span><span class="w">${c==="X"?(pl.length?esc(pl.join(" + ")):"Not placed yet"):""}</span></div>`;}
+  h+=`</div>`;
+  const mine=S.reqs.filter(r=>r.name===S.myName);
+  h+=`<div class="card"><div class="reqrow"><span class="h">My requests</span><button class="btn dark small" data-act="ask">Ask for a change</button></div>`;
+  h+=mine.length?mine.slice(0,8).map(r=>`<div class="reqrow"><span>${esc(reqWhat(r))}<br><small class="sub">${r.status==="waiting"?"Sent "+whenText(r.created_at):r.status==="approved"?"Approved by "+esc(r.answered_by||"admin"):"Declined by "+esc(r.answered_by||"admin")+(r.reason?": “"+esc(r.reason)+"”":"")}</small></span><span class="pill-s ${r.status}">${r.status==="waiting"?"Waiting":r.status==="approved"?"Approved":"Declined"}</span>${r.status==="waiting"?`<button class="btn small" data-act="reqcancel" data-id="${r.id}">${S.confirmRm==="req"+r.id?"Tap again":"Cancel"}</button>`:""}</div>`).join(""):`<span class="sub">No requests yet.</span>`;
+  h+=bambooHtml()+`</div>`;
+  const pn=lsGet("nspca-rota-push"),on=pn===S.myName,ps=pushState();
+  h+=`<div class="card"><div class="reqrow"><span><b>Notifications</b><br><small class="sub">${ps==="ios-browser"?"On an iPhone, add the rota to your home screen and open it from there first.":ps==="unsupported"?"This browser can't show notifications.":on?"On for this phone. You'll hear when your days change or a request is answered.":"Off on this phone."}</small></span>${ps==="ok"?`<button class="toggle" data-act="${on?"pushoff":"pushme"}" aria-pressed="${on}" aria-label="Notifications on this phone"${S.busy?" disabled":""}><i></i></button>`:""}</div>${S.pushErr?`<span class="err" style="color:#c0281b;font-weight:700">${esc(S.pushErr)}</span>`:""}</div>`;
+  h+=`<button class="btn" data-act="signout">Sign out</button>`;
+  return h;
+}
+
+function requestsView(){
+  if(!S.isAdmin) return `<p class="empty">Only rota admins can answer requests.</p>`;
+  const list=S.reqs.slice().sort((a,b)=>(a.status==="waiting"?0:1)-(b.status==="waiting"?0:1)||(b.created_at>a.created_at?1:-1));
+  if(!list.length) return `<p class="empty">No requests yet. Staff send them from the Me tab.</p>`;
+  return list.slice(0,40).map(r=>{
+    let h=`<div class="req${r.status!=="waiting"?" done":""}"><div class="top"><b>${esc(r.name)}</b><span class="pill-s ${r.status}">${r.status==="waiting"?"Waiting":r.status==="approved"?"Approved":"Declined"}</span></div>
+      <div class="what">${esc(reqWhat(r))}</div>${r.note?`<div class="nt">“${esc(r.note)}”</div>`:""}<div class="when">Sent ${whenText(r.created_at)}</div>`;
+    if(r.status==="waiting"){
+      const p=planRequest(r);
+      h+=`<div class="chg"><span class="h">If you approve</span>${p.changes.map(t=>`<span>${esc(t)}</span>`).join("")}</div>`;
+      if(p.warn.length) h+=`<div class="warnbox">${p.warn.map(esc).join("<br>")}</div>`;
+      if(S.decl===r.id) h+=`<label for="why" class="sub" style="font-weight:700">Reason (${esc(r.name)} will see this)</label><input type="text" id="why" placeholder="e.g. Nobody to cover Isolation that day"><div class="two"><button class="btn" data-act="declback">Back</button><button class="btn danger" data-act="declgo" data-id="${r.id}"${S.busy?" disabled":""}>Decline</button></div>`;
+      else h+=`<div class="two"><button class="btn" data-act="decl" data-id="${r.id}">Decline…</button><button class="btn dark" data-act="approve" data-id="${r.id}"${S.busy?" disabled":""}>Approve</button></div>`;
+    }else{
+      h+=`<div class="sub">${r.status==="approved"?"Approved by "+esc(r.answered_by||"admin"):"Declined by "+esc(r.answered_by||"admin")+(r.reason?": “"+esc(r.reason)+"”":"")}${r.answered_at?" · "+whenText(r.answered_at):""}</div>`;
+    }
+    return h+`</div>`;
+  }).join("");
 }
 
 function staffView(){
@@ -497,13 +631,19 @@ function staffView(){
   const gone=S.staff.filter(p=>!p.active);
   if(gone.length) h+=`<div class="card"><span class="h">Removed</span>${gone.map(p=>`<div class="staffrow"><span>${esc(p.name)} <small class="sub">(${esc(p.team)})</small></span><button class="btn small" data-act="restaff" data-n="${esc(p.name)}">Bring back</button></div>`).join("")}</div>`;
   h+=`<p class="sub">Removing someone hides them from new days. Their past days stay on the rota.</p>`;
+  h+=`<div class="card"><span class="h">Logins</span><span class="sub">Type the email each person signs in with. That links their login to their name, so they get a Me page and can ask for changes as themselves.</span>`;
+  activeStaff().forEach((p,i)=>{const l=S.logins.find(x=>x.name===p.name);
+    h+=`<div class="loginrow"><span>${esc(p.name)}</span><input type="email" id="lg-${i}" value="${esc(l?l.email:"")}" placeholder="login email" autocomplete="off"><button class="btn small" data-act="savelogin" data-n="${esc(p.name)}" data-i="${i}">Save</button></div>`;});
+  h+=`</div>`;
   return h;
 }
 
 function footer(){
   if(!configured()) return "";
-  if(!S.session) return `<div class="foot noprint"><span>Leave and sick days show as OFF.</span><button class="linkbtn" data-act="signin">Staff sign in</button></div>`;
-  return `<div class="foot noprint"><span>Signed in as ${esc(S.session.email)}${S.isAdmin?" · Rota admin":""}</span><button class="linkbtn" data-act="signout">Sign out</button></div>`;
+  const pn=lsGet("nspca-rota-push");
+  const bell=`<button class="linkbtn" data-act="push">${pn?"Notifications on ("+esc(pn)+")":"Get notifications"}</button>`;
+  if(!S.session) return `<div class="foot noprint"><span></span><span>${bell} · <button class="linkbtn" data-act="signin">Staff sign in</button></span></div>`;
+  return `<div class="foot noprint"><span>Signed in as ${esc(S.session.email)}${S.isAdmin?" · Rota admin":""}</span><span>${bell} · <button class="linkbtn" data-act="signout">Sign out</button></span></div>`;
 }
 
 function overlay(){
@@ -526,10 +666,36 @@ function overlay(){
   const sh=S.sheet;
   h+=`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">`;
   if(sh.type==="signin"){
-    h+=`<div class="top"><div><div class="t">Sign in</div><div class="s">Same email and password as the dog app. Staff don't need to sign in to see the rota.</div></div><button class="btn" data-act="close">Cancel</button></div>
+    h+=`<div class="top"><div><div class="t">Sign in</div><div class="s">Use the email and password you sign in to the NSPCA Longford apps with. You don't need to sign in just to look at the rota.</div></div><button class="btn" data-act="close">Cancel</button></div>
     <form class="form" id="signinForm"><label for="si-email">Email</label><input type="email" id="si-email" autocomplete="username" required>
     <label for="si-pass">Password</label><input type="password" id="si-pass" autocomplete="current-password" required>
     ${S.signinErr?`<div class="err">${esc(S.signinErr)}</div>`:""}<button class="btn dark" type="submit"${S.busy?" disabled":""}>${S.busy?"Signing in…":"Sign in"}</button></form>`;
+  }else if(sh.type==="push"){
+    const pn=lsGet("nspca-rota-push"),st=pushState();
+    h+=`<div class="top"><div><div class="t">Notifications</div><div class="s">Get a notification on this phone when your own days on the rota change.</div></div><button class="btn" data-act="close">Close</button></div>`;
+    if(st==="unsupported") h+=`<p>This browser can't show notifications. On an Android phone use Chrome. On an iPhone, add the rota to your home screen first.</p>`;
+    else if(st==="ios-browser") h+=`<p><b>On an iPhone, notifications only work from the home screen.</b></p><p>In Safari tap <b>Share</b>, then <b>Add to Home Screen</b>. Open the rota from the new icon and come back here.</p>`;
+    else if(pn) h+=`<p>Notifications are on for <b>${esc(pn)}</b> on this phone.</p><button class="btn" data-act="pushoff"${S.busy?" disabled":""}>Turn off</button>`;
+    else h+=`<div class="form"><label for="push-name">Your name on the rota</label><select id="push-name">${activeStaff().map(p=>`<option${p.name===S.who?" selected":""}>${esc(p.name)}</option>`).join("")}</select>
+      <button class="btn dark" data-act="pushon"${S.busy?" disabled":""}>${S.busy?"Turning on…":"Turn on notifications"}</button></div>`;
+    if(S.pushErr) h+=`<div class="form"><span class="err">${esc(S.pushErr)}</span></div>`;
+  }else if(sh.type==="ask"){
+    const k=sh.kind,days=sh.days||[];
+    h+=`<div class="top"><div><div class="t">Ask for a change</div><div class="s">Goes to Shane, Ciara and Sarah O'Carroll</div></div><button class="btn" data-act="close">Cancel</button></div>
+    <span class="h2">What do you need?</span><div class="chips">${KIND_BTN.map(([v,l])=>`<button class="chipbtn" data-act="askkind" data-k="${v}" aria-pressed="${k===v}">${l}</button>`).join("")}</div>${bambooHtml()}
+    <span class="h2">${k==="swap"?"Which day?":"Which days?"}</span><div class="days14">`;
+    for(let i=0;i<14;i++){const x=addDays(today0(),i),d=iso(x),c=stOf(d,S.myName);
+      h+=`<button data-act="askday" data-d="${d}" aria-pressed="${days.includes(d)}"><span class="dn">${DN[x.getDay()]}</span><span class="dd">${x.getDate()}</span><span class="cd">${c?LABEL[c]:"–"}</span></button>`;}
+    h+=`</div>`;
+    if(k==="swap"&&days.length){
+      const d=days[0],offs=activeStaff().filter(p=>p.name!==S.myName&&stOf(d,p.name)==="O");
+      h+=`<span class="h2">Swap with</span>${offs.length?`<div class="chips">${offs.map(p=>`<button class="chipbtn" data-act="askswap" data-n="${esc(p.name)}" aria-pressed="${sh.swap===p.name}">${esc(p.name)}</button>`).join("")}</div><span class="sub">Only people who are OFF on ${esc(dShort(d))} are listed.</span>`:`<span class="sub">Nobody is OFF on ${esc(dShort(d))}, so there's nobody to swap with.</span>`}`;
+    }
+    const ready=days.length&&(k!=="swap"||sh.swap);
+    const label=!days.length?(k==="swap"?"Pick a day":"Pick a day or days"):k==="swap"&&!sh.swap?"Pick who to swap with":"Send · "+reqWhat({kind:k,days,swap_with:sh.swap});
+    h+=`<label class="h2" for="ask-note">Note (optional)</label><textarea id="ask-note" rows="2" placeholder="Anything the admins should know">${esc(sh.note||"")}</textarea>
+    ${S.askErr?`<span class="err" style="color:#c0281b;font-weight:700">${esc(S.askErr)}</span>`:""}
+    <button class="btn dark" data-act="asksend"${ready&&!S.busy?"":" disabled"}>${S.busy?"Sending…":esc(label)}</button>`;
   }else if(sh.type==="sec"){
     const d=iso(S.cur),[s,hue]=SECTIONS[sh.i],here=plOf(d,s);
     h+=`<div class="top"><div><div class="t" style="color:hsl(${hue} 60% var(--ink-l))">${esc(s)}</div><div class="s">${esc(dayLong(S.cur))}</div></div><button class="btn dark" data-act="close">Done</button></div>
@@ -554,7 +720,7 @@ function overlay(){
 function render(){
   const g=document.getElementById("mgrid"),gl=g?g.scrollLeft:null;
   let body="";
-  if(S.view==="day")body=dayView();else if(S.view==="week")body=weekView();else if(S.view==="month")body=monthView();else if(S.view==="person")body=personView();else body=staffView();
+  if(S.view==="day")body=dayView();else if(S.view==="week")body=weekView();else if(S.view==="month")body=monthView();else if(S.view==="person")body=personView();else if(S.view==="me")body=meView();else if(S.view==="requests")body=requestsView();else body=staffView();
   const app=document.getElementById("app");app.classList.toggle("wide",S.view==="month");
   app.innerHTML=header()+body+footer();
   document.getElementById("overlay").innerHTML=overlay();
@@ -563,10 +729,68 @@ function render(){
   if(ng){ if(gl!==null) ng.scrollLeft=gl; else if(S.my.y===today0().getFullYear()&&S.my.m===today0().getMonth()) ng.scrollLeft=Math.max(0,(today0().getDate()-3)*38); }
   const sel=document.getElementById("who");
   if(sel) sel.onchange=()=>{S.who=sel.value;lsSet("nspca-rota-who",S.who);render()};
+  const an=document.getElementById("ask-note");
+  if(an) an.oninput=()=>{if(S.sheet)S.sheet.note=an.value};
   const f=document.getElementById("signinForm");
   if(f){f.onsubmit=e=>{e.preventDefault();S.siEmail=document.getElementById("si-email").value.trim();signIn(S.siEmail,document.getElementById("si-pass").value)};
     const em=document.getElementById("si-email"),pw=document.getElementById("si-pass");
     if(em&&S.siEmail){em.value=S.siEmail;if(!S.busy)setTimeout(()=>pw.focus(),50)} else if(em) setTimeout(()=>em.focus(),50);}
+}
+
+/* ---------- notifications ---------- */
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const standalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+function pushState(){
+  if(isIOS()&&!standalone()) return "ios-browser";
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)) return "unsupported";
+  return "ok";
+}
+const b64u=s=>{const p="=".repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+async function pushOn(name){
+  S.busy=true;S.pushErr="";render();
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted") throw new Error("Notifications are blocked. Allow them for the rota in your phone's settings, then try again.");
+    const reg=await navigator.serviceWorker.ready;
+    const sub=(await reg.pushManager.getSubscription())||(await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(CONFIG.push)}));
+    await api("rpc/rota_push_subscribe",{method:"POST",body:{p_endpoint:sub.endpoint,p_name:name,p_sub:sub.toJSON()}});
+    lsSet("nspca-rota-push",name);S.sheet=null;S.note="Notifications are on. You'll get one when your days change.";S.noteErr=false;
+  }catch(e){S.pushErr=e.message||"Couldn't turn notifications on."}
+  S.busy=false;render();
+}
+async function pushOff(){
+  S.busy=true;S.pushErr="";render();
+  try{const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub){try{await api("rpc/rota_push_unsubscribe",{method:"POST",body:{p_endpoint:sub.endpoint}})}catch(e){} await sub.unsubscribe()}
+    lsSet("nspca-rota-push",null);S.sheet=null;S.note="Notifications are off on this phone.";S.noteErr=false;
+  }catch(e){S.pushErr="Couldn't turn notifications off."}
+  S.busy=false;render();
+}
+function changeSummary(){
+  const t=iso(today0()),hit=new Map();
+  const add=(d,n)=>{if(d<t)return;if(!hit.has(n))hit.set(n,new Set());hit.get(n).add(d)};
+  for(const k of S.pend.status.keys()){const i=k.indexOf("|");add(k.slice(0,i),k.slice(i+1))}
+  for(const [k,names] of S.pend.place){const i=k.indexOf("|"),d=k.slice(0,i),old=S.place.get(k)||[];
+    for(const n of names) if(!old.includes(n)) add(d,n);
+    for(const n of old) if(!names.includes(n)) add(d,n);}
+  const people={};
+  for(const [n,days] of hit){
+    const lines=[...days].sort().map(d=>{const x=fromIso(d),c=stOf(d,n),pl=placedIn(d,n);
+      const what=c&&c!=="X"?LABEL[c]:pl.length?pl.join(" + "):c==="X"?"X (in)":"not on the rota";
+      return DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()]+": "+what});
+    people[n]={body:lines.slice(0,4).join("\n")+(lines.length>4?"\nand "+(lines.length-4)+" more days":"")};
+  }
+  const all=[...hit.values()].flatMap(x=>[...x]).sort();
+  if(!all.length) return {people};
+  const a=fromIso(all[0]),b=fromIso(all[all.length-1]);
+  const f=x=>DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()];
+  return {people,all:{body:"Changes for "+(all[0]===all[all.length-1]?f(a):f(a)+" – "+f(b))+". Tap to see the rota."}};
+}
+async function sendNotifications(payload){
+  if(!payload.all&&!(payload.people&&Object.keys(payload.people).length)&&!payload.request) return 0;
+  try{const r=await fetch(CONFIG.url+"/functions/v1/rota-notify",{method:"POST",
+      headers:{apikey:CONFIG.key,Authorization:"Bearer "+(await bearer()),"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    if(!r.ok) return null; const j=await r.json(); return j.sent||0}catch(e){return null}
 }
 
 /* ---------- actions ---------- */
@@ -576,19 +800,22 @@ async function signIn(email,pass){
     const r=await fetch(CONFIG.url+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:CONFIG.key,"Content-Type":"application/json"},body:JSON.stringify({email,password:pass})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(j.error_description||j.msg||"Email or password not recognised.");
-    setSession(j); await checkAdmin(); clearData(); S.sheet=null;
-    S.note=S.isAdmin?"Signed in. Tap Edit rota to make changes.":"Signed in. You can now see leave and sick days.";S.noteErr=false;
+    setSession(j); await checkAdmin(); clearData(); S.sheet=null; await loadMe();
+    S.note=S.isAdmin?"Signed in. Tap Edit rota to make changes.":"Signed in.";S.noteErr=false;
     await loadBase();
   }catch(e){S.signinErr=/invalid/i.test(e.message)?"Email or password not recognised.":e.message}
   S.busy=false; go();
 }
 function signOut(){
   if(pendCount()){S.note="Publish or undo your changes before signing out.";S.noteErr=true;render();return}
-  dropSession();clearData();S.view=S.view==="staff"?"day":S.view;S.note="Signed out.";S.noteErr=false;go();
+  S.toast="";dropSession();clearData();S.view=["staff","me","requests"].includes(S.view)?"day":S.view;S.note="Signed out.";S.noteErr=false;go();
 }
-async function publish(){
-  if(!pendCount()||S.busy) return;
+async function publish(opt={}){
+  if(!pendCount()||(S.busy&&!opt.inner)) return false;
   S.busy=true;render();
+  const people=changeSummary();
+  if(opt.override) opt.override(people);
+  let ok=false;
   try{
     const ups=[],dels=[];
     for(const [k,c] of S.pend.status){const i=k.indexOf("|"),day=k.slice(0,i),name=k.slice(i+1);(c?ups:dels).push({day,name,code:c})}
@@ -602,8 +829,51 @@ async function publish(){
     for(const x of pls) S.place.set(pk(x.day,x.section),x.names);
     S.pend={status:new Map(),place:new Map()};savePend();cacheSave();
     S.pub=(p&&p[0])||{at:new Date().toISOString(),by_email:S.session.email};
-    S.toast="Published. Staff see it the next time they open the rota.";S.note="";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},6000);
+    ok=true;S.toast=opt.toast||"Published. Staff see it the next time they open the rota.";S.note="";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},7000);
+    sendNotifications(people).then(n=>{if(n>0&&S.toast){S.toast=(opt.toast||"Published.").replace(/\.$/,"")+". "+n+(n===1?" phone":" phones")+" notified.";render()}});
   }catch(e){S.note="Couldn't publish ("+e.message+"). Your changes are still here, so try again.";S.noteErr=true}
+  S.busy=false;render();
+  return ok;
+}
+
+/* ---------- requests ---------- */
+async function sendRequest(){
+  const sh=S.sheet;if(!sh||S.busy)return;
+  S.busy=true;S.askErr="";render();
+  try{
+    const row={name:S.myName,kind:sh.kind,days:sh.days.slice().sort(),swap_with:sh.kind==="swap"?sh.swap:null,note:(sh.note||"").trim()||null};
+    const r=await api("rota_requests",{method:"POST",body:row,prefer:"return=representation"});
+    const saved=(r&&r[0])||{...row,id:Date.now(),status:"waiting",created_at:new Date().toISOString()};
+    S.reqs.unshift(saved);S.sheet=null;
+    S.note="Request sent. Shane, Ciara and Sarah O'Carroll have been told. You'll get a notification when it's answered.";S.noteErr=false;
+    sendNotifications({request:saved.id});
+  }catch(e){S.askErr="Couldn't send ("+e.message+"). Try again."}
+  S.busy=false;render();
+}
+async function approveRequest(id){
+  const r=S.reqs.find(x=>x.id==id);if(!r||S.busy)return;
+  if(pendCount()){S.note="Publish or undo your rota edits first, then approve.";S.noteErr=true;render();return}
+  const ds=(r.days||[]).slice().sort();
+  try{await ensureRange(fromIso(ds[0]),fromIso(ds[ds.length-1]))}catch(e){}
+  const plan=planRequest(r);plan.ops.forEach(f=>f());
+  const me=meName(),what=reqWhat(r);
+  const ok=await publish({toast:"Approved. "+r.name+"'s request is on the rota.",override:p=>{
+    p.people=p.people||{};p.people[r.name]={title:"Request approved",body:what+" is on the rota.\nApproved by "+me};}});
+  if(!ok) return;
+  try{await api("rota_requests?id=eq."+r.id,{method:"PATCH",body:{status:"approved",answered_by:me,answered_at:new Date().toISOString()},prefer:"return=minimal"});
+    Object.assign(r,{status:"approved",answered_by:me,answered_at:new Date().toISOString()});}
+  catch(e){S.note="The rota was updated, but the request couldn't be marked approved ("+e.message+").";S.noteErr=true}
+  render();
+}
+async function declineRequest(id,reason){
+  const r=S.reqs.find(x=>x.id==id);if(!r||S.busy)return;
+  S.busy=true;render();
+  const me=meName();
+  try{await api("rota_requests?id=eq."+r.id,{method:"PATCH",body:{status:"declined",answered_by:me,answered_at:new Date().toISOString(),reason:reason||null},prefer:"return=minimal"});
+    Object.assign(r,{status:"declined",answered_by:me,answered_at:new Date().toISOString(),reason:reason||null});S.decl=null;
+    S.toast="Declined. "+r.name+" has been told.";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},6000);
+    sendNotifications({people:{[r.name]:{title:"Request declined",body:reqWhat(r)+(reason?"\n"+me+": “"+reason+"”":"")}}});
+  }catch(e){S.note="Couldn't decline ("+e.message+").";S.noteErr=true}
   S.busy=false;render();
 }
 async function copyWeek(){
@@ -628,7 +898,7 @@ document.addEventListener("click",async e=>{
   if(a!=="rmstaff") S.confirmRm="";
   if(["view","prevm","nextm","done","signout","edit"].includes(a)) S.sel=[];
   switch(a){
-    case "view":S.view=el.dataset.v;if(S.view==="person"&&!S.who){const f=activeStaff()[0];if(f)S.who=f.name}go();break;
+    case "view":S.view=el.dataset.v;S.decl=null;if(["me","requests"].includes(S.view)&&S.session)loadMe().then(()=>go());if(S.view==="person"&&!S.who){const f=activeStaff()[0];if(f)S.who=f.name}go();break;
     case "day":S.cur=fromIso(el.dataset.d);render();break;
     case "prevw":S.cur=addDays(S.cur,-7);go();break;
     case "nextw":S.cur=addDays(S.cur,7);go();break;
@@ -657,6 +927,33 @@ document.addEventListener("click",async e=>{
       else S.sel.push({k,d,n});
       render();break}
     case "selclear":S.sel=[];render();break;
+    case "push":S.sheet={type:"push"};S.pushErr="";render();break;
+    case "pushon":{const v=document.getElementById("push-name");if(v)pushOn(v.value);break}
+    case "pushoff":pushOff();break;
+    case "ask":S.sheet={type:"ask",kind:"swap",days:[],swap:null,note:""};S.askErr="";go();break;
+    case "askkind":S.sheet.kind=el.dataset.k;if(S.sheet.kind==="swap")S.sheet.days=S.sheet.days.slice(0,1);S.sheet.swap=null;render();break;
+    case "askday":{const d=el.dataset.d,sh=S.sheet;
+      if(sh.kind==="swap"){sh.days=sh.days[0]===d?[]:[d];sh.swap=null}
+      else sh.days=sh.days.includes(d)?sh.days.filter(x=>x!==d):sh.days.concat([d]).sort();
+      render();break}
+    case "askswap":S.sheet.swap=S.sheet.swap===el.dataset.n?null:el.dataset.n;render();break;
+    case "asksend":sendRequest();break;
+    case "reqcancel":{const id=el.dataset.id;if(S.confirmRm!=="req"+id){S.confirmRm="req"+id;render();break}
+      S.confirmRm="";try{await api("rota_requests?id=eq."+id,{method:"DELETE",prefer:"return=minimal"});S.reqs=S.reqs.filter(r=>r.id!=id);S.note="Request cancelled.";S.noteErr=false}
+      catch(err){S.note="Couldn't cancel ("+err.message+").";S.noteErr=true}render();break}
+    case "approve":approveRequest(el.dataset.id);break;
+    case "decl":S.decl=+el.dataset.id;render();setTimeout(()=>{const w=document.getElementById("why");if(w)w.focus()},50);break;
+    case "declback":S.decl=null;render();break;
+    case "declgo":{const w=document.getElementById("why");declineRequest(el.dataset.id,w?w.value.trim():"");break}
+    case "pushme":pushOn(S.myName);break;
+    case "savelogin":{const n=el.dataset.n,inp=document.getElementById("lg-"+el.dataset.i),email=(inp?inp.value:"").trim().toLowerCase();
+      if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){S.note="That doesn't look like an email address.";S.noteErr=true;render();break}
+      try{await api("rota_logins?name=eq."+encodeURIComponent(n),{method:"DELETE",prefer:"return=minimal"});
+        if(email) await api("rota_logins?on_conflict=email",{method:"POST",body:[{email,name:n}],prefer:"resolution=merge-duplicates,return=minimal"});
+        S.logins=S.logins.filter(x=>x.name!==n&&x.email!==email);if(email)S.logins.push({email,name:n});
+        S.note=email?n+" is linked to "+email+".":n+"'s login link was removed.";S.noteErr=false;}
+      catch(err){S.note="Couldn't save the login ("+err.message+").";S.noteErr=true}
+      render();break}
     case "hl":S.who=S.who===el.dataset.n?"":el.dataset.n;lsSet("nspca-rota-who",S.who);render();break;
     case "setsel":{const code=el.dataset.c||null,off=[];let madeIn=0;
       for(const {d,n} of S.sel){const was=stOf(d,n),pl=placedIn(d,n);setSt(d,n,code);
@@ -690,7 +987,8 @@ async function init(){
   if(location.hash==="#month")S.view="month";
   render();
   if(!configured()){S.loading=false;render();return}
-  try{await loadBase();if(S.session){await checkAdmin()}S.offline=false}catch(e){S.offline=true}
+  try{await loadBase();if(S.session){await checkAdmin();await loadMe()}S.offline=false}catch(e){S.offline=true}
+  if(location.hash==="#me"&&S.session)S.view="me";if(location.hash==="#requests"&&S.isAdmin)S.view="requests";
   if(!S.isAdmin&&pendCount()){S.pend={status:new Map(),place:new Map()};savePend()}
   if(S.isAdmin&&pendCount()){S.editing=true;S.note="You have unpublished changes from before.";S.noteErr=false}
   if(!S.offline) S.loaded=new Set();
