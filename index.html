@@ -81,7 +81,8 @@ h2{font-family:var(--display);font-weight:800;font-size:1.2rem;margin:0}
 .wkrow .code.c-N{background:var(--bg);color:var(--muted);border:1px dashed var(--line)}
 .wkrow .w{flex:1;color:var(--muted);min-width:0}
 .reqrow{display:flex;align-items:center;gap:8px}
-.reqrow>span{flex:1;min-width:0}
+.reqrow>span{flex:none}
+.reqrow>span:first-child{flex:1;min-width:0}
 .pill-s{font-weight:700;font-size:12px;padding:2px 8px;border-radius:99px;white-space:nowrap}
 .pill-s.waiting{background:var(--warn-bg);color:var(--warn-fg)}
 .pill-s.approved{background:#e3f4ea;color:#1f7a45}
@@ -778,13 +779,13 @@ function changeSummary(){
     const lines=[...days].sort().map(d=>{const x=fromIso(d),c=stOf(d,n),pl=placedIn(d,n);
       const what=c&&c!=="X"?LABEL[c]:pl.length?pl.join(" + "):c==="X"?"X (in)":"not on the rota";
       return DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()]+": "+what});
-    people[n]={body:lines.slice(0,4).join("\n")+(lines.length>4?"\nand "+(lines.length-4)+" more days":"")};
+    people[n]={body:lines.slice(0,4).join("\n")+(lines.length>4?"\nand "+(lines.length-4)+" more days":""),url:"./#day-"+[...days].sort()[0]};
   }
   const all=[...hit.values()].flatMap(x=>[...x]).sort();
   if(!all.length) return {people};
   const a=fromIso(all[0]),b=fromIso(all[all.length-1]);
   const f=x=>DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()];
-  return {people,all:{body:"Changes for "+(all[0]===all[all.length-1]?f(a):f(a)+" – "+f(b))+". Tap to see the rota."}};
+  return {people,all:{body:"Changes for "+(all[0]===all[all.length-1]?f(a):f(a)+" – "+f(b))+". Tap to see the rota.",url:"./#day-"+all[0]}};
 }
 async function sendNotifications(payload){
   if(!payload.all&&!(payload.people&&Object.keys(payload.people).length)&&!payload.request) return 0;
@@ -845,7 +846,7 @@ async function sendRequest(){
     const r=await api("rota_requests",{method:"POST",body:row,prefer:"return=representation"});
     const saved=(r&&r[0])||{...row,id:Date.now(),status:"waiting",created_at:new Date().toISOString()};
     S.reqs.unshift(saved);S.sheet=null;
-    S.note="Request sent. Shane, Ciara and Sarah O'Carroll have been told. You'll get a notification when it's answered.";S.noteErr=false;
+    S.note="Sent for approval.";S.noteErr=false;clearTimeout(window._nt);window._nt=setTimeout(()=>{if(S.note==="Sent for approval."){S.note="";render()}},5000);
     sendNotifications({request:saved.id});
   }catch(e){S.askErr="Couldn't send ("+e.message+"). Try again."}
   S.busy=false;render();
@@ -858,7 +859,7 @@ async function approveRequest(id){
   const plan=planRequest(r);plan.ops.forEach(f=>f());
   const me=meName(),what=reqWhat(r);
   const ok=await publish({toast:"Approved. "+r.name+"'s request is on the rota.",override:p=>{
-    p.people=p.people||{};p.people[r.name]={title:"Request approved",body:what+" is on the rota.\nApproved by "+me};}});
+    p.people=p.people||{};p.people[r.name]={title:"Request approved",body:what+" is on the rota.\nApproved by "+me,url:"./#me"};}});
   if(!ok) return;
   try{await api("rota_requests?id=eq."+r.id,{method:"PATCH",body:{status:"approved",answered_by:me,answered_at:new Date().toISOString()},prefer:"return=minimal"});
     Object.assign(r,{status:"approved",answered_by:me,answered_at:new Date().toISOString()});}
@@ -872,7 +873,7 @@ async function declineRequest(id,reason){
   try{await api("rota_requests?id=eq."+r.id,{method:"PATCH",body:{status:"declined",answered_by:me,answered_at:new Date().toISOString(),reason:reason||null},prefer:"return=minimal"});
     Object.assign(r,{status:"declined",answered_by:me,answered_at:new Date().toISOString(),reason:reason||null});S.decl=null;
     S.toast="Declined. "+r.name+" has been told.";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},6000);
-    sendNotifications({people:{[r.name]:{title:"Request declined",body:reqWhat(r)+(reason?"\n"+me+": “"+reason+"”":"")}}});
+    sendNotifications({people:{[r.name]:{title:"Request declined",body:reqWhat(r)+(reason?"\n"+me+": “"+reason+"”":""),url:"./#me"}}});
   }catch(e){S.note="Couldn't decline ("+e.message+").";S.noteErr=true}
   S.busy=false;render();
 }
@@ -982,13 +983,23 @@ document.addEventListener("click",async e=>{
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.sheet&&!S.busy){S.sheet=null;render()}});
 
+function applyHash(){
+  const h=location.hash||"";let m;
+  if((m=h.match(/^#day-(\d{4}-\d{2}-\d{2})$/))){S.view="day";S.cur=fromIso(m[1]);S.my={y:S.cur.getFullYear(),m:S.cur.getMonth()};S.sheet=null;return true}
+  if(h==="#month"){S.view="month";return true}
+  if(h==="#me"&&S.session){S.view="me";S.sheet=null;return true}
+  if(h==="#requests"&&S.isAdmin){S.view="requests";S.sheet=null;return true}
+  return false;
+}
+window.addEventListener("hashchange",async()=>{if(applyHash()){if(["me","requests"].includes(S.view))await loadMe();go()}});
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message",e=>{const u=e.data&&e.data.open;if(u){const i=u.indexOf("#");const h=i>=0?u.slice(i):"";if(h&&h!==location.hash)location.hash=h;else if(applyHash()){loadMe().then(()=>go())}}});
 async function init(){
   S.session=lsGet("nspca-rota-session");S.who=lsGet("nspca-rota-who")||"";loadPend();cacheLoad();
   if(location.hash==="#month")S.view="month";
   render();
   if(!configured()){S.loading=false;render();return}
   try{await loadBase();if(S.session){await checkAdmin();await loadMe()}S.offline=false}catch(e){S.offline=true}
-  if(location.hash==="#me"&&S.session)S.view="me";if(location.hash==="#requests"&&S.isAdmin)S.view="requests";
+  applyHash();
   if(!S.isAdmin&&pendCount()){S.pend={status:new Map(),place:new Map()};savePend()}
   if(S.isAdmin&&pendCount()){S.editing=true;S.note="You have unpublished changes from before.";S.noteErr=false}
   if(!S.offline) S.loaded=new Set();
