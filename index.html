@@ -507,7 +507,7 @@ function weekView(){
   for(const [s,hue] of SECTIONS){
     h+=`<tr><th style="--h:${hue}">${esc(s)}</th>${days.map(x=>`<td style="--h:${hue}">${plOf(iso(x),s).map(n=>`<div>${n===S.who?`<span class="me">${esc(n)}</span>`:esc(n)}</div>`).join("")}</td>`).join("")}</tr>`;
   }
-  h+=`</tbody></table></div><div class="noprint"><button class="btn" data-act="print">Print this week</button></div>`;
+  h+=`</tbody></table></div><div class="noprint ctrl"><button class="btn" data-act="print">Print this week</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="week">Notify staff</button>`:""}</div>`;
   return h;
 }
 
@@ -532,7 +532,7 @@ function monthView(){
   h+=`</tbody></table></div>`;
   h+=`<div class="legend">${TEAMS.map(([t,hh])=>`<span><i style="background:hsl(${hh} 70% 50%)"></i>${esc(t)}</span>`).join("")}<span><b>X</b>&nbsp;= in</span><span><i class="c-A"></i>A/L</span><span><i class="c-S"></i>SICK</span><span><i class="c-T"></i>TOIL</span><span><i class="c-O"></i>OFF</span></div>`;
   if(S.editing) h+=`<p class="sub noprint">Tap squares to select them, then choose In, Off, A/L, Sick or TOIL. To select a run of days, tap the first day then the last day in the same row. Marking someone off takes them off that day's sections too.</p>`;
-  h+=`<div class="noprint"><button class="btn" data-act="print">Print this month</button></div>`;
+  h+=`<div class="noprint ctrl"><button class="btn" data-act="print">Print this month</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="month">Notify staff</button>`:""}</div>`;
   return h;
 }
 
@@ -680,6 +680,11 @@ function overlay(){
     else h+=`<div class="form"><label for="push-name">Your name on the rota</label><select id="push-name">${activeStaff().map(p=>`<option${p.name===S.who?" selected":""}>${esc(p.name)}</option>`).join("")}</select>
       <button class="btn dark" data-act="pushon"${S.busy?" disabled":""}>${S.busy?"Turning on…":"Turn on notifications"}</button></div>`;
     if(S.pushErr) h+=`<div class="form"><span class="err">${esc(S.pushErr)}</span></div>`;
+  }else if(sh.type==="notify"){
+    h+=`<div class="top"><div><div class="t">Notify staff</div><div class="s">Everyone with notifications on gets this. Tapping it opens ${sh.k==="week"?"this week":esc(ML[S.my.m])+" on the Month tab"}.</div></div><button class="btn" data-act="close">Cancel</button></div>
+    <label class="h2" for="notify-msg">Message</label><textarea id="notify-msg" rows="3">${esc(sh.msg)}</textarea>
+    <div class="card"><span class="h2">They'll see</span><b>Rota updated</b><span id="notify-prev">${esc(sh.msg)}</span></div>
+    <button class="btn dark" data-act="notifysend"${S.busy?" disabled":""}>${S.busy?"Sending…":"Send to everyone"}</button>`;
   }else if(sh.type==="ask"){
     const k=sh.kind,days=sh.days||[];
     h+=`<div class="top"><div><div class="t">Ask for a change</div><div class="s">Goes to Shane, Ciara and Sarah O'Carroll</div></div><button class="btn" data-act="close">Cancel</button></div>
@@ -730,6 +735,8 @@ function render(){
   if(ng){ if(gl!==null) ng.scrollLeft=gl; else if(S.my.y===today0().getFullYear()&&S.my.m===today0().getMonth()) ng.scrollLeft=Math.max(0,(today0().getDate()-3)*38); }
   const sel=document.getElementById("who");
   if(sel) sel.onchange=()=>{S.who=sel.value;lsSet("nspca-rota-who",S.who);render()};
+  const nm=document.getElementById("notify-msg");
+  if(nm) nm.oninput=()=>{if(S.sheet)S.sheet.msg=nm.value;const pv=document.getElementById("notify-prev");if(pv)pv.textContent=nm.value};
   const an=document.getElementById("ask-note");
   if(an) an.oninput=()=>{if(S.sheet)S.sheet.note=an.value};
   const f=document.getElementById("signinForm");
@@ -947,6 +954,18 @@ document.addEventListener("click",async e=>{
     case "declback":S.decl=null;render();break;
     case "declgo":{const w=document.getElementById("why");declineRequest(el.dataset.id,w?w.value.trim():"");break}
     case "pushme":pushOn(S.myName);break;
+    case "notify":{const ws=monday(S.cur);
+      S.sheet=el.dataset.k==="week"
+        ?{type:"notify",k:"week",msg:"The rota for "+weekLabel(ws)+" is up. Tap to see it.",url:"./#week-"+iso(ws)}
+        :{type:"notify",k:"month",msg:"The "+ML[S.my.m]+" rota is up. Tap to see it.",url:"./#month-"+mkey(S.my.y,S.my.m)};
+      render();break}
+    case "notifysend":{const sh=S.sheet,msg=(sh.msg||"").trim();if(!msg)break;
+      S.busy=true;render();
+      const n=await sendNotifications({all:{body:msg,url:sh.url}});
+      S.busy=false;S.sheet=null;
+      if(n===null){S.note="Couldn't send the notification. Check the rota-notify function is deployed.";S.noteErr=true}
+      else{S.toast=n?"Sent to "+n+(n===1?" phone.":" phones."):"Sent, but nobody has notifications turned on yet.";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},6000)}
+      render();break}
     case "savelogin":{const n=el.dataset.n,inp=document.getElementById("lg-"+el.dataset.i),email=(inp?inp.value:"").trim().toLowerCase();
       if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){S.note="That doesn't look like an email address.";S.noteErr=true;render();break}
       try{await api("rota_logins?name=eq."+encodeURIComponent(n),{method:"DELETE",prefer:"return=minimal"});
@@ -987,6 +1006,8 @@ function applyHash(){
   const h=location.hash||"";let m;
   if((m=h.match(/^#day-(\d{4}-\d{2}-\d{2})$/))){S.view="day";S.cur=fromIso(m[1]);S.my={y:S.cur.getFullYear(),m:S.cur.getMonth()};S.sheet=null;return true}
   if(h==="#month"){S.view="month";return true}
+  if((m=h.match(/^#month-(\d{4})-(\d{2})$/))){S.view="month";S.my={y:+m[1],m:+m[2]-1};S.sheet=null;return true}
+  if((m=h.match(/^#week-(\d{4}-\d{2}-\d{2})$/))){S.view="week";S.cur=fromIso(m[1]);S.sheet=null;return true}
   if(h==="#me"&&S.session){S.view="me";S.sheet=null;return true}
   if(h==="#requests"&&S.isAdmin){S.view="requests";S.sheet=null;return true}
   return false;
