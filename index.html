@@ -113,6 +113,36 @@ h2{font-family:var(--display);font-weight:800;font-size:1.2rem;margin:0}
 .chipbtn{border-radius:99px;padding:0 14px;min-height:40px;font-size:15px;font-weight:700;background:var(--surface);color:var(--fg);border:1px solid var(--line)}
 .chipbtn[aria-pressed="true"]{background:var(--charcoal);color:var(--lichen);border-color:var(--charcoal)}
 textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px;resize:vertical;min-height:64px}
+.glance{background:var(--charcoal);color:#fff;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.glance .top{display:flex;align-items:baseline;gap:8px}
+.glance .top b{font-family:var(--display);font-size:1.2rem;flex:1}
+.glance .you{font-size:.85rem;color:var(--lichen);font-weight:700}
+.glance .tiles{display:grid;gap:6px}
+.glance .tile{background:rgba(255,255,255,.08);border-radius:8px;padding:8px;display:flex;flex-direction:column}
+.glance .tile b{font-size:1.4rem;line-height:1.1}
+.glance .tile span{font-size:.75rem;color:#b9bfcb}
+.glance .tile.short{background:rgba(253,216,53,.18)}.glance .tile.short b{color:#fdd835}.glance .tile.short span{color:#f3e6a8}
+.days .dot.new{background:#1d5fae}
+.newtag{align-self:center;margin-right:8px;background:#1d5fae;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;white-space:nowrap}
+.needtag{align-self:center;margin-right:8px;background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-line);font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;white-space:nowrap}
+.dept.short{box-shadow:inset 0 0 0 2px #e8890c}
+.swipehint{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--muted)}
+.mo td.tot,.mo th.tot{background:var(--bg);font-weight:800;color:var(--fg);min-width:42px}
+.mo tr.inrow td{font-weight:800;background:var(--surface);color:var(--fg)}
+.mo tr.inrow td.short{background:var(--warn-bg);color:var(--warn-fg);box-shadow:inset 0 -3px #e8890c}
+.mo tr.inrow th.nm{background:var(--surface);color:var(--fg);border-left-color:var(--fg)}
+.cal .c[data-act]{cursor:pointer}
+.wkrow[data-act]{cursor:pointer;border-radius:8px}
+.wkrow[data-act]:hover{background:var(--bg)}
+.nextshift{--h:28;background:hsl(var(--h) 75% calc(var(--tint-l) - 4%));border-left:6px solid hsl(var(--h) 70% 48%);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;color:hsl(var(--h) 60% var(--ink-l))}
+.nextshift .h{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.nextshift b{font-family:var(--display);font-size:1.35rem}
+.nextshift span:last-child{font-size:.9rem}
+.minrow{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:3px 0}
+.minrow input{width:3.2rem;text-align:center}
+.cover{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.cover .dotc{width:12px;height:12px;border-radius:50%;flex:none}
+.cover>div{flex:1;min-width:0;display:flex;flex-direction:column}
 .loginrow{display:grid;grid-template-columns:7rem 1fr auto;gap:8px;align-items:center;padding:4px 0}
 .loginrow span{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:420px){.loginrow{grid-template-columns:1fr auto}.loginrow span{grid-column:1/-1}}
@@ -312,7 +342,7 @@ const lsSet=(k,v)=>{try{if(v==null)localStorage.removeItem(k);else localStorage.
 const S={view:"day",cur:today0(),my:null,who:"",session:null,isAdmin:false,editing:false,
   staff:[],status:new Map(),place:new Map(),loaded:new Set(),pub:null,
   pend:{status:new Map(),place:new Map()},sheet:null,note:"",noteErr:false,toast:"",busy:false,
-  offline:false,signinErr:"",confirmRm:"",loading:true,sel:[],myName:null,reqs:[],logins:[],decl:null};
+  offline:false,signinErr:"",confirmRm:"",loading:true,sel:[],myName:null,reqs:[],logins:[],decl:null,mins:{},opened:{},openedChanged:{}};
 const BAMBOO_URL=""; // paste your BambooHR address here to make the BambooHR mention a link
 S.my={y:S.cur.getFullYear(),m:S.cur.getMonth()};
 
@@ -365,6 +395,7 @@ async function loadBase(){
     api("rota_staff?select=name,team,sort,active&order=sort.asc,name.asc"),
     api("rota_published?select=at,by_email&order=at.desc&limit=1")]);
   S.staff=staff||[]; S.pub=(pub&&pub[0])||null;
+  try{const r=await api("rota_settings?select=value&key=eq.minimums");S.mins=(r&&r[0]&&r[0].value)||{}}catch(e){S.mins=S.mins||{}}
 }
 async function checkAdmin(){
   if(!S.session){S.isAdmin=false;return}
@@ -392,12 +423,13 @@ async function ensureRange(a,b){
     for(const r of st||[]) S.status.set(sk(r.day,r.name),r.code);
     for(const r of pl||[]) S.place.set(pk(r.day,r.section),r.names||[]);
     S.loaded.add(mkey(y,m));
+    seenInit(y,m);
   }));
   cacheSave();
 }
 function visibleRange(){
   if(S.view==="month"||S.view==="person"){return[new Date(S.my.y,S.my.m,1),new Date(S.my.y,S.my.m+1,0)]}
-  if(S.view==="me") return [today0(),addDays(today0(),13)];
+  if(S.view==="me") return [new Date(today0().getFullYear(),today0().getMonth(),1),addDays(today0(),45)];
   if(S.view==="requests"){const ds=S.reqs.flatMap(r=>r.days||[]).sort();return [ds.length?fromIso(ds[0]):today0(),ds.length?fromIso(ds[ds.length-1]):today0()]}
   const ws=monday(S.cur);return[ws,addDays(ws,6)];
 }
@@ -431,6 +463,46 @@ function weekEmpty(ws){
     if(S.staff.some(p=>stOf(d,p.name))) return false;}
   return true;
 }
+
+/* ---------- minimums, counts, "changed since you last looked" ---------- */
+const minOf=s=>+(S.mins&&S.mins[s]||0);
+const inOn=(d,s)=>plOf(d,s).filter(n=>{const c=stOf(d,n);return !c||c==="X"});
+function shortFor(d){
+  if(!SECTIONS.some(([s])=>plOf(d,s).length)) return [];
+  return SECTIONS.filter(([s])=>minOf(s)>0&&inOn(d,s).length<minOf(s)).map(([s])=>({s,have:inOn(d,s).length,need:minOf(s)}));
+}
+const inCount=d=>activeStaff().filter(p=>stOf(d,p.name)==="X").length;
+const offCount=d=>activeStaff().filter(p=>{const c=stOf(d,p.name);return c&&c!=="X"}).length;
+let SEEN=lsGet("nspca-rota-seen")||{days:{}};
+function dayFp(d){
+  const p={};for(const [s] of SECTIONS)p[s]=(S.place.get(pk(d,s))||[]).join("|");
+  return {p,s:S.staff.map(x=>x.name+":"+(S.status.get(sk(d,x.name))||"")).join(",")};
+}
+function seenSave(){
+  const cut=iso(addDays(today0(),-45));for(const k of Object.keys(SEEN.days))if(k<cut)delete SEEN.days[k];
+  lsSet("nspca-rota-seen",SEEN);
+}
+function seenInit(y,m){ // first time a month loads on this phone: remember it silently
+  const n=new Date(y,m+1,0).getDate();let ch=false;
+  for(let i=1;i<=n;i++){const d=iso(new Date(y,m,i));if(!SEEN.days[d]){SEEN.days[d]=dayFp(d);ch=true}}
+  if(ch)seenSave();
+}
+function changedFor(d){
+  const old=SEEN.days[d];if(!old)return null;
+  const now=dayFp(d),secs=SECTIONS.map(x=>x[0]).filter(s=>(old.p||{})[s]!==now.p[s]);
+  return {secs,any:secs.length>0||old.s!==now.s};
+}
+function openDaySeen(d){
+  if(S.opened[d]||!S.loaded.has(d.slice(0,7)))return;
+  const c=changedFor(d);S.openedChanged[d]=c?c.secs:[];S.opened[d]=true;SEEN.days[d]=dayFp(d);seenSave();
+}
+function weekX(d,n){const ws=monday(fromIso(d));let k=0;for(let i=0;i<7;i++)if(stOf(iso(addDays(ws,i)),n)==="X")k++;return k}
+function coverList(d,who,sec){
+  const team=(S.staff.find(p=>p.name===who)||{}).team;
+  return activeStaff().filter(p=>p.name!==who&&stOf(d,p.name)==="O").map(p=>({n:p.name,team:p.team,hue:TEAM_HUE[p.team]??210,k:weekX(d,p.name),same:p.team===team}))
+    .sort((a,b)=>(b.same-a.same)||(a.k-b.k)||a.n.localeCompare(b.n));
+}
+function goDay(d,who){S.view="day";S.cur=fromIso(d);if(who){S.who=who;lsSet("nspca-rota-who",who)}S.sheet=null;go();window.scrollTo(0,0)}
 
 /* ---------- views ---------- */
 const svgPen='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -468,15 +540,27 @@ function header(){
   return h;
 }
 
+function glanceHtml(d){
+  const x=fromIso(d),inN=inCount(d),offN=offCount(d),short=shortFor(d),anyMin=SECTIONS.some(([s])=>minOf(s)>0);
+  let you="";
+  if(S.myName){const c=stOf(d,S.myName),pl=placedIn(d,S.myName);you=c&&c!=="X"?"You: "+LABEL[c]:pl.length?"You: "+pl.join(" + "):c==="X"?"You: in, not placed":""}
+  return `<div class="glance noprint"><div class="top"><b>${isToday(x)?"Today, ":""}${DN[x.getDay()]} ${x.getDate()}${isToday(x)?"":" "+MN[x.getMonth()]}</b>${you?`<span class="you">${esc(you)}</span>`:""}</div>
+    <div class="tiles" style="grid-template-columns:repeat(${anyMin?3:2},minmax(0,1fr))"><div class="tile"><b>${inN}</b><span>in ${isToday(x)?"today":"that day"}</span></div><div class="tile"><b>${offN}</b><span>off / leave</span></div>${anyMin?`<div class="tile${short.length?" short":""}"><b>${short.length}</b><span>${short.length===1?"section short":"sections short"}</span></div>`:""}</div></div>`;
+}
 function dayView(){
   const ws=monday(S.cur),d=iso(S.cur);
-  let h=`<div class="days noprint">`;
+  if(!S.editing) openDaySeen(d);
+  const newSecs=S.editing?[]:(S.openedChanged[d]||[]);
+  let h=glanceHtml(d)+`<div class="days noprint">`;
   for(let i=0;i<7;i++){const x=addDays(ws,i),xi=iso(x);
-    const bad=S.editing&&issuesFor(xi).length>0;
-    h+=`<button data-act="day" data-d="${xi}" aria-pressed="${xi===d}"><span class="dn">${DN[x.getDay()]}</span><span class="dd">${x.getDate()}</span><span class="dot${bad?" bad":isToday(x)?" today":""}"></span></button>`;}
+    const bad=S.editing&&(issuesFor(xi).length>0||shortFor(xi).length>0);
+    const c=!S.editing&&!S.opened[xi]?changedFor(xi):null,isNew=c&&c.any;
+    h+=`<button data-act="day" data-d="${xi}" aria-pressed="${xi===d}"><span class="dn">${DN[x.getDay()]}</span><span class="dd">${x.getDate()}</span><span class="dot${bad?" bad":isNew?" new":isToday(x)?" today":""}"></span></button>`;}
   h+=`</div><h2>${esc(dayLong(S.cur))}${isToday(S.cur)?" · Today":""}</h2>`;
   if(S.editing){
     const iss=issuesFor(d);
+    const sh=shortFor(d);
+    if(sh.length) h+=`<div class="issues"><span class="h">Below minimum</span>${sh.map(x=>`<div class="issue"><span>${esc(x.s)} has ${x.have} (needs ${x.need})</span></div>`).join("")}</div>`;
     if(iss.length) h+=`<div class="issues"><span class="h">Doesn't match the month</span>${iss.map(x=>x.kind==="off"
       ?`<div class="issue"><span>${esc(x.n)} is on ${esc(x.s)} but ${LABEL[x.c]} on the month</span><button class="btn small" data-act="fixoff" data-n="${esc(x.n)}" data-s="${esc(x.s)}">Take off</button></div>`
       :`<div class="issue"><span>${esc(x.n)} is in but not placed</span></div>`).join("")}</div>`;
@@ -488,16 +572,18 @@ function dayView(){
     h+=`<div class="list${S.who?" dim":""}">`;
     SECTIONS.forEach(([s,hue],i)=>{
       const names=plOf(d,s),has=S.who&&names.includes(S.who),tag=S.editing?"button":"div";
-      h+=`<${tag} class="dept${has?" has-me":""}${S.editing&&placeChanged(d,s)?" changed":""}" style="--h:${hue}"${S.editing?` data-act="sec" data-i="${i}" aria-label="Change ${esc(s)}"`:""}><span class="lab">${esc(s)}</span><span class="names">`;
+      const need=minOf(s),have=inOn(d,s).length,isShort=need>0&&have<need&&SECTIONS.some(([z])=>plOf(d,z).length);
+      h+=`<${tag} class="dept${has?" has-me":""}${S.editing&&placeChanged(d,s)?" changed":""}${isShort?" short":""}" style="--h:${hue}"${S.editing?` data-act="sec" data-i="${i}" aria-label="Change ${esc(s)}"`:""}><span class="lab">${esc(s)}</span><span class="names">`;
       h+=names.map(n=>{const c=stOf(d,n),off=c&&c!=="X";
         return `<span class="name${n===S.who?" me":""}${off&&S.editing?" warn":""}">${esc(n)}${off&&S.editing?" · "+LABEL[c]:""}</span>`}).join("");
       if(!names.length) h+=`<span class="nobody">${S.editing?"Nobody on":"—"}</span>`;
-      h+=`</span>${S.editing?`<span class="pen">${svgPen}</span>`:""}</${tag}>`;
+      h+=`</span>${isShort?`<span class="needtag">${have} of ${need}</span>`:""}${newSecs.includes(s)?`<span class="newtag">Changed</span>`:""}${S.editing?`<span class="pen">${svgPen}</span>`:""}</${tag}>`;
     });
     h+=`</div>`;
   }
   const off=activeStaff().filter(p=>{const c=stOf(d,p.name);return c&&c!=="X"});
   if(off.length) h+=`<div class="card"><span class="h">Not in today</span><div class="chips">${off.map(p=>{const c=stOf(d,p.name);return `<span class="st ${c}">${esc(p.name)}${c!=="O"?" · "+LABEL[c]:""}</span>`}).join("")}</div></div>`;
+  if(touchUI()&&!lsGet("nspca-rota-swiped")) h+=`<div class="swipehint noprint"><svg width="28" height="20" viewBox="0 0 28 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4 2 10l6 6M20 4l6 6-6 6M2 10h24"/></svg><span>Swipe left or right anywhere to go to the next or previous day</span></div>`;
   return h;
 }
 
@@ -519,7 +605,8 @@ function monthPeople(){
 function monthView(){
   const y=S.my.y,m=S.my.m,n=new Date(y,m+1,0).getDate();
   const days=[...Array(n)].map((_,i)=>new Date(y,m,i+1));
-  let h=`<div class="gridwrap" id="mgrid"><table class="mo"><thead><tr><th class="nm">Name</th>${days.map(x=>`<th class="${isToday(x)?"cur":x.getDay()%6===0?"we":""}"><small>${DN[x.getDay()]}</small>${x.getDate()}</th>`).join("")}</tr></thead><tbody>`;
+  const tot=S.isAdmin;
+  let h=`<div class="gridwrap" id="mgrid"><table class="mo"><thead><tr><th class="nm">Name</th>${days.map(x=>`<th class="${isToday(x)?"cur":x.getDay()%6===0?"we":""}"><small>${DN[x.getDay()]}</small>${x.getDate()}</th>`).join("")}${tot?`<th class="tot"><small>${MN[m]}</small>in</th>`:""}</tr></thead><tbody>`;
   for(const p of monthPeople()){
     const hue=TEAM_HUE[p.team]??210;
     h+=`<tr class="${p.name===S.who?"me":""}"><th class="nm" style="--h:${hue}"><button class="nmb" data-act="hl" data-n="${esc(p.name)}" aria-pressed="${p.name===S.who}" title="Highlight ${esc(p.name)}">${esc(p.name)}</button></th>`;
@@ -527,9 +614,16 @@ function monthView(){
       const lbl=c?LABEL[c]:"";
       h+=S.editing?`<td class="${cls}" style="--h:${hue}"><button data-act="cell" data-d="${d}" data-n="${esc(p.name)}" aria-label="${esc(p.name)}, ${esc(dayLong(x))}: ${c?LABEL[c]:"not set"}">${lbl}</button></td>`
                   :`<td class="${cls}" style="--h:${hue}">${lbl}</td>`;}
+    if(tot) h+=`<td class="tot">${days.filter(x=>stOf(iso(x),p.name)==="X").length}</td>`;
     h+=`</tr>`;
   }
+  const shortDays=[];
+  h+=`<tr class="inrow"><th class="nm">Staff in</th>${days.map(x=>{const d=iso(x),sh=shortFor(d);if(sh.length)shortDays.push([x,sh]);return `<td class="${sh.length?"short":""}"${sh.length?` title="${esc(sh.map(z=>z.s+" "+z.have+" of "+z.need).join(", "))}"`:""}>${inCount(d)||""}</td>`}).join("")}${tot?`<td class="tot"></td>`:""}</tr>`;
   h+=`</tbody></table></div>`;
+  if(S.isAdmin&&shortDays.length){
+    const nm=shortDays.slice(0,4).map(([x])=>DN[x.getDay()]+" "+x.getDate()).join(", ")+(shortDays.length>4?" and "+(shortDays.length-4)+" more":"");
+    h+=`<div class="issues"><span class="h">Short on ${esc(nm)}</span>${shortDays.slice(0,4).map(([x,sh])=>`<div class="issue"><span>${DN[x.getDay()]} ${x.getDate()}: ${esc(sh.map(z=>z.s+" has "+z.have+" (needs "+z.need+")").join(", "))}</span><button class="btn small" data-act="openday" data-d="${iso(x)}">Open</button></div>`).join("")}</div>`;
+  }
   h+=`<div class="legend">${TEAMS.map(([t,hh])=>`<span><i style="background:hsl(${hh} 70% 50%)"></i>${esc(t)}</span>`).join("")}<span><b>X</b>&nbsp;= in</span><span><i class="c-A"></i>A/L</span><span><i class="c-S"></i>SICK</span><span><i class="c-T"></i>TOIL</span><span><i class="c-O"></i>OFF</span></div>`;
   if(S.editing) h+=`<p class="sub noprint">Tap squares to select them, then choose In, Off, A/L, Sick or TOIL. To select a run of days, tap the first day then the last day in the same row. Marking someone off takes them off that day's sections too.</p>`;
   h+=`<div class="noprint ctrl"><button class="btn" data-act="print">Print this month</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="month">Notify staff</button>`:""}</div>`;
@@ -544,8 +638,8 @@ function personView(){
   let cells=`<div></div>`.repeat(lead);
   for(let i=1;i<=n;i++){const x=new Date(y,m,i),d=iso(x),c=stOf(d,who);if(c)cnt[c]++;
     const where=c==="X"?placedIn(d,who).join(", "):"";
-    cells+=`<div class="c c-${c||"N"}${isToday(x)?" cur":""}" style="--h:${hue}"><span class="n">${i}</span>${c?LABEL[c]:"–"}${where?`<small>${esc(where)}</small>`:""}</div>`;}
-  return `<h2>${esc(who)} · ${ML[m]}</h2><div class="counts"><span><b>${cnt.X}</b> in</span><span><b>${cnt.O}</b> off</span>${cnt.A?`<span><b>${cnt.A}</b> A/L</span>`:""}${cnt.S?`<span><b>${cnt.S}</b> sick</span>`:""}${cnt.T?`<span><b>${cnt.T}</b> TOIL</span>`:""}</div>
+    cells+=`<div class="c c-${c||"N"}${isToday(x)?" cur":""}" style="--h:${hue}" data-act="openday" data-d="${d}" data-n="${esc(who)}" role="button" tabindex="0" aria-label="Open ${esc(dayLong(x))}"><span class="n">${i}</span>${c?LABEL[c]:"–"}${where?`<small>${esc(where)}</small>`:""}</div>`;}
+  return `<h2>${esc(who)} · ${ML[m]}</h2><p class="sub noprint">Tap a day to see who's on.</p><div class="counts"><span><b>${cnt.X}</b> in</span><span><b>${cnt.O}</b> off</span>${cnt.A?`<span><b>${cnt.A}</b> A/L</span>`:""}${cnt.S?`<span><b>${cnt.S}</b> sick</span>`:""}${cnt.T?`<span><b>${cnt.T}</b> TOIL</span>`:""}</div>
   <div class="cal">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(x=>`<div class="dh">${x}</div>`).join("")}${cells}</div>`;
 }
 
@@ -588,11 +682,24 @@ function meView(){
   if(!S.session) return `<div class="card"><span>Sign in to see your profile and ask for changes.</span><button class="btn dark" data-act="signin">Sign in</button></div>`;
   if(!S.myName) return `<div class="card"><span class="h">Not linked yet</span><span>Your login (${esc(S.session.email)}) isn't linked to a name on the rota yet. Ask Shane, Ciara or Sarah O'Carroll to link it.</span></div>`;
   const me=S.staff.find(p=>p.name===S.myName)||{team:""},hue=TEAM_HUE[me.team]??210;
-  let h=`<div class="card me-card"><span class="avatar" style="--h:${hue}">${esc(S.myName[0]||"?")}</span><div><b>${esc(S.myName)}</b><div class="sub">${esc(me.team||"")}</div><div class="sub">${esc(S.session.email)}</div></div></div>`;
-  h+=`<div class="card"><span class="h">My next 7 days</span>`;
+  let h="";
+  const ups=[];for(let i=0;i<45&&ups.length<4;i++){const d=iso(addDays(today0(),i));if(stOf(d,S.myName)==="X")ups.push(d)}
+  if(ups.length){
+    const d0=ups[0],x0=fromIso(d0),pl=placedIn(d0,S.myName),diff=Math.round((x0-today0())/864e5);
+    const when=diff===0?"Today":diff===1?"Tomorrow":DN[x0.getDay()]+" "+x0.getDate()+" "+MN[x0.getMonth()];
+    const mates=[...new Set(pl.flatMap(s=>inOn(d0,s)).filter(n=>n!==S.myName))];
+    h+=`<div class="nextshift" style="--h:${hue}" data-act="openday" data-d="${d0}" data-n="${esc(S.myName)}" role="button" tabindex="0"><span class="h">Next shift</span><b>${esc(when)}${pl.length?" · "+esc(pl.join(" + ")):""}</b><span>${esc(DN[x0.getDay()]+" "+x0.getDate()+" "+MN[x0.getMonth()])}${mates.length?", with "+esc(mates.slice(0,3).join(", ").replace(/, ([^,]*)$/," and $1")):""}.${ups.length>1?" Then "+esc(ups.slice(1).map(dShort).map(z=>z.replace(/ \w+$/,"")).join(", "))+".":""}</span></div>`;
+  }
+  h+=`<div class="card me-card"><span class="avatar" style="--h:${hue}">${esc(S.myName[0]||"?")}</span><div><b>${esc(S.myName)}</b><div class="sub">${esc(me.team||"")}</div><div class="sub">${esc(S.session.email)}</div></div></div>`;
+  h+=`<div class="card"><span class="h">My next 7 days · tap a day to see who's on</span>`;
   for(let i=0;i<7;i++){const x=addDays(today0(),i),d=iso(x),c=stOf(d,S.myName),pl=placedIn(d,S.myName);
-    h+=`<div class="wkrow"><span class="d">${i===0?"Today":DN[x.getDay()]+" "+x.getDate()}</span><span class="code c-${c||"N"}" style="--h:${hue}">${c?LABEL[c]:"–"}</span><span class="w">${c==="X"?(pl.length?esc(pl.join(" + ")):"Not placed yet"):""}</span></div>`;}
+    h+=`<div class="wkrow" data-act="openday" data-d="${d}" data-n="${esc(S.myName)}" role="button" tabindex="0"><span class="d">${i===0?"Today":DN[x.getDay()]+" "+x.getDate()}</span><span class="code c-${c||"N"}" style="--h:${hue}">${c?LABEL[c]:"–"}</span><span class="w">${c==="X"?(pl.length?esc(pl.join(" + ")):"Not placed yet"):""}</span></div>`;}
   h+=`</div>`;
+  {const y=today0().getFullYear(),m=today0().getMonth(),n=new Date(y,m+1,0).getDate(),lead=(new Date(y,m,1).getDay()+6)%7;
+    let cells=`<div></div>`.repeat(lead);
+    for(let i=1;i<=n;i++){const x=new Date(y,m,i),d=iso(x),c=stOf(d,S.myName);
+      cells+=`<div class="c c-${c||"N"}${isToday(x)?" cur":""}" style="--h:${hue};min-height:46px" data-act="openday" data-d="${d}" data-n="${esc(S.myName)}" role="button" tabindex="0"><span class="n">${i}</span>${c?LABEL[c]:"–"}</div>`;}
+    h+=`<div class="card"><span class="h">${ML[m]} · tap a day to see who's on</span><div class="cal">${["M","T","W","T","F","S","S"].map(x=>`<div class="dh">${x}</div>`).join("")}${cells}</div></div>`;}
   const mine=S.reqs.filter(r=>r.name===S.myName);
   h+=`<div class="card"><div class="reqrow"><span class="h">My requests</span><button class="btn dark small" data-act="ask">Ask for a change</button></div>`;
   h+=mine.length?mine.slice(0,8).map(r=>`<div class="reqrow"><span>${esc(reqWhat(r))}<br><small class="sub">${r.status==="waiting"?"Sent "+whenText(r.created_at):r.status==="approved"?"Approved by "+esc(r.answered_by||"admin"):"Declined by "+esc(r.answered_by||"admin")+(r.reason?": “"+esc(r.reason)+"”":"")}</small></span><span class="pill-s ${r.status}">${r.status==="waiting"?"Waiting":r.status==="approved"?"Approved":"Declined"}</span>${r.status==="waiting"?`<button class="btn small" data-act="reqcancel" data-id="${r.id}">${S.confirmRm==="req"+r.id?"Tap again":"Cancel"}</button>`:""}</div>`).join(""):`<span class="sub">No requests yet.</span>`;
@@ -632,6 +739,9 @@ function staffView(){
   const gone=S.staff.filter(p=>!p.active);
   if(gone.length) h+=`<div class="card"><span class="h">Removed</span>${gone.map(p=>`<div class="staffrow"><span>${esc(p.name)} <small class="sub">(${esc(p.team)})</small></span><button class="btn small" data-act="restaff" data-n="${esc(p.name)}">Bring back</button></div>`).join("")}</div>`;
   h+=`<p class="sub">Removing someone hides them from new days. Their past days stay on the rota.</p>`;
+  h+=`<div class="card"><span class="h">Section minimums</span><span class="sub">The fewest people each section needs. Days below it are flagged, and Find cover warns you. Leave at 0 for no minimum.</span>`;
+  SECTIONS.forEach(([s,hue],i)=>{h+=`<div class="minrow"><span style="font-weight:700;color:hsl(${hue} 60% var(--ink-l))">${esc(s)}</span><button class="step" data-act="minstep" data-i="${i}" data-n="-1" aria-label="Fewer">−</button><input type="number" min="0" max="20" id="min-${i}" value="${minOf(s)}" inputmode="numeric"><button class="step" data-act="minstep" data-i="${i}" data-n="1" aria-label="More">+</button></div>`});
+  h+=`<button class="btn dark" data-act="savemins"${S.busy?" disabled":""}>Save minimums</button></div>`;
   h+=`<div class="card"><span class="h">Logins</span><span class="sub">Type the email each person signs in with. That links their login to their name, so they get a Me page and can ask for changes as themselves.</span>`;
   activeStaff().forEach((p,i)=>{const l=S.logins.find(x=>x.name===p.name);
     h+=`<div class="loginrow"><span>${esc(p.name)}</span><input type="email" id="lg-${i}" value="${esc(l?l.email:"")}" placeholder="login email" autocomplete="off"><button class="btn small" data-act="savelogin" data-n="${esc(p.name)}" data-i="${i}">Save</button></div>`;});
@@ -680,6 +790,15 @@ function overlay(){
     else h+=`<div class="form"><label for="push-name">Your name on the rota</label><select id="push-name">${activeStaff().map(p=>`<option${p.name===S.who?" selected":""}>${esc(p.name)}</option>`).join("")}</select>
       <button class="btn dark" data-act="pushon"${S.busy?" disabled":""}>${S.busy?"Turning on…":"Turn on notifications"}</button></div>`;
     if(S.pushErr) h+=`<div class="form"><span class="err">${esc(S.pushErr)}</span></div>`;
+  }else if(sh.type==="cover"){
+    const sec=sh.secs[sh.at],x=fromIso(sh.d),have=inOn(sh.d,sec).length,need=minOf(sec);
+    const list=coverList(sh.d,sh.n,sec);
+    h+=`<div class="top"><div><div class="t">Find cover</div><div class="s">${esc(sh.n)} is ${esc(LABEL[sh.code])} on ${esc(dayLong(x))}${sh.secs.length>1?" · section "+(sh.at+1)+" of "+sh.secs.length:""}</div></div><button class="btn" data-act="close">Close</button></div>`;
+    if(have===0||have<need) h+=`<div class="warnbox" style="background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-fg);border-radius:10px;padding:10px 12px"><b>${esc(sec)} ${have===0?"now has nobody":"is down to "+have}</b>${need?`<br><span style="font-weight:400">${esc(sec)} needs at least ${need}.</span>`:""}</div>`;
+    h+=`<span class="h2">OFF that day, best fit first</span>`;
+    h+=list.length?list.slice(0,8).map((p,i)=>`<div class="cover"><span class="dotc" style="background:hsl(${p.hue} 70% 50%)"></span><div><b>${esc(p.n)}</b><span class="sub">${esc(p.team)} · ${p.k} day${p.k===1?"":"s"} in this week</span></div><button class="btn small${i===0?" dark":""}" data-act="coverput" data-n="${esc(p.n)}">Put on ${esc(sec.split(" /")[0])}</button></div>`).join(""):`<span class="sub">Nobody is OFF that day.</span>`;
+    h+=`<span class="sub">Same team first, then whoever has worked the fewest days this week. Tapping marks them X and places them. You still press Publish, and they get a notification.</span>
+    <button class="btn" data-act="coverskip">Leave ${esc(sec.split(" /")[0])} ${have?"as it is":"empty for now"}</button>`;
   }else if(sh.type==="notify"){
     h+=`<div class="top"><div><div class="t">Notify staff</div><div class="s">Everyone with notifications on gets this. Tapping it opens ${sh.k==="week"?"this week":esc(ML[S.my.m])+" on the Month tab"}.</div></div><button class="btn" data-act="close">Cancel</button></div>
     <label class="h2" for="notify-msg">Message</label><textarea id="notify-msg" rows="3">${esc(sh.msg)}</textarea>
@@ -704,7 +823,7 @@ function overlay(){
     <button class="btn dark" data-act="asksend"${ready&&!S.busy?"":" disabled"}>${S.busy?"Sending…":esc(label)}</button>`;
   }else if(sh.type==="sec"){
     const d=iso(S.cur),[s,hue]=SECTIONS[sh.i],here=plOf(d,s);
-    h+=`<div class="top"><div><div class="t" style="color:hsl(${hue} 60% var(--ink-l))">${esc(s)}</div><div class="s">${esc(dayLong(S.cur))}</div></div><button class="btn dark" data-act="close">Done</button></div>
+    h+=`<div class="top" style="align-items:center"><button class="step" data-act="secday" data-n="-1" aria-label="Previous day">‹</button><div style="text-align:center"><div class="t" style="color:hsl(${hue} 60% var(--ink-l))">${esc(s)}</div><div class="s">${esc(dayLong(S.cur))}</div></div><button class="step" data-act="secday" data-n="1" aria-label="Next day">›</button><button class="btn dark" data-act="close">Done</button></div>
     <span class="h">On this section</span><div class="chips">${here.map(n=>{const c=stOf(d,n),off=c&&c!=="X";return `<button class="oncur${off?" warn":""}" data-act="secrm" data-n="${esc(n)}" aria-label="Take ${esc(n)} off">${esc(n)}${off?" · "+LABEL[c]:""}<i>✕</i></button>`}).join("")||`<span class="nobody">Nobody on yet. Add someone below.</span>`}</div>`;
     const cand=activeStaff().filter(p=>!here.includes(p.name)&&(stOf(d,p.name)===null||stOf(d,p.name)==="X")).map(p=>{
       const c=stOf(d,p.name),els=placedIn(d,p.name).filter(x=>x!==s);
@@ -835,6 +954,7 @@ async function publish(opt={}){
     for(const x of ups) S.status.set(sk(x.day,x.name),x.code);
     for(const x of dels) S.status.delete(sk(x.day,x.name));
     for(const x of pls) S.place.set(pk(x.day,x.section),x.names);
+    for(const d of new Set([...ups,...dels,...pls].map(x=>x.day))) SEEN.days[d]=dayFp(d); seenSave();
     S.pend={status:new Map(),place:new Map()};savePend();cacheSave();
     S.pub=(p&&p[0])||{at:new Date().toISOString(),by_email:S.session.email};
     ok=true;S.toast=opt.toast||"Published. Staff see it the next time they open the rota.";S.note="";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},7000);
@@ -925,6 +1045,7 @@ document.addEventListener("click",async e=>{
     case "undo":S.pend={status:new Map(),place:new Map()};savePend();S.note="Changes undone.";S.noteErr=false;render();break;
     case "publish":publish();break;
     case "sec":S.sheet={type:"sec",i:+el.dataset.i};render();break;
+    case "secday":S.cur=addDays(S.cur,+el.dataset.n);go();break;
     case "secrm":{const d=iso(S.cur),s=SECTIONS[S.sheet.i][0];setPl(d,s,plOf(d,s).filter(x=>x!==el.dataset.n));render();break}
     case "secadd":{const d=iso(S.cur),s=SECTIONS[S.sheet.i][0],n=el.dataset.n;setPl(d,s,plOf(d,s).concat([n]));if(stOf(d,n)===null)setSt(d,n,"X");render();break}
     case "fixoff":{const d=iso(S.cur),s=el.dataset.s;setPl(d,s,plOf(d,s).filter(x=>x!==el.dataset.n));render();break}
@@ -975,12 +1096,26 @@ document.addEventListener("click",async e=>{
       catch(err){S.note="Couldn't save the login ("+err.message+").";S.noteErr=true}
       render();break}
     case "hl":S.who=S.who===el.dataset.n?"":el.dataset.n;lsSet("nspca-rota-who",S.who);render();break;
+    case "openday":goDay(el.dataset.d,el.dataset.n);break;
+    case "coverput":{const sh=S.sheet,sec=sh.secs[sh.at],n=el.dataset.n;setSt(sh.d,n,"X");setPl(sh.d,sec,plOf(sh.d,sec).concat([n]));
+      S.note=n+" put on "+sec+" for "+dayLong(fromIso(sh.d))+". Press Publish to send it.";S.noteErr=false;
+      if(sh.at<sh.secs.length-1)sh.at++;else S.sheet=null;render();break}
+    case "coverskip":{const sh=S.sheet;if(sh.at<sh.secs.length-1)sh.at++;else S.sheet=null;render();break}
+    case "minstep":{const i=document.getElementById("min-"+el.dataset.i);if(i)i.value=Math.max(0,Math.min(20,(+i.value||0)+(+el.dataset.n)));break}
+    case "savemins":{const v={};SECTIONS.forEach(([s],i)=>{const n=+(document.getElementById("min-"+i)||{}).value||0;if(n>0)v[s]=n});
+      S.busy=true;render();
+      try{await api("rota_settings?on_conflict=key",{method:"POST",body:[{key:"minimums",value:v}],prefer:"resolution=merge-duplicates,return=minimal"});S.mins=v;S.note="Minimums saved.";S.noteErr=false}
+      catch(err){S.note="Couldn't save minimums ("+err.message+"). Has rota-settings.sql been run?";S.noteErr=true}
+      S.busy=false;render();break}
     case "setsel":{const code=el.dataset.c||null,off=[];let madeIn=0;
+      const one=S.sel.length===1?{...S.sel[0],pl:placedIn(S.sel[0].d,S.sel[0].n)}:null;
       for(const {d,n} of S.sel){const was=stOf(d,n),pl=placedIn(d,n);setSt(d,n,code);
         if(code&&code!=="X"&&pl.length){for(const s of pl)setPl(d,s,plOf(d,s).filter(k=>k!==n));const x=fromIso(d);off.push(n+" "+DN[x.getDay()]+" "+x.getDate())}
         else if(code==="X"&&was!=="X"&&!pl.length) madeIn++;}
       S.sel=[];S.noteErr=false;
       S.note=off.length?"Taken off their sections: "+off.slice(0,4).join(", ")+(off.length>4?" and "+(off.length-4)+" more":"")+".":madeIn?"Marked in. Place them on the Day tab.":"";
+      if(one&&code&&code!=="X"&&one.pl.length){S.sheet={type:"cover",d:one.d,n:one.n,code,secs:one.pl,at:0};S.note="";
+        const ws=monday(fromIso(one.d));ensureRange(ws,addDays(ws,6)).then(()=>render()).catch(()=>{})}
       render();break}
     case "setcode":{const {d,n}=S.sheet,code=el.dataset.c||null,was=stOf(d,n),pl=placedIn(d,n),x=fromIso(d);
       setSt(d,n,code);S.sheet=null;S.noteErr=false;S.note="";
@@ -1000,7 +1135,16 @@ document.addEventListener("click",async e=>{
     case "restaff":{const p=S.staff.find(x=>x.name===el.dataset.n);if(p&&await saveStaff({...p,active:true})){S.note=p.name+" is back on the staff list.";S.noteErr=false}render();break}
   }
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.sheet&&!S.busy){S.sheet=null;render()}});
+const touchUI=()=>window.matchMedia&&matchMedia("(pointer:coarse)").matches;
+let tX=null,tY=null;
+document.addEventListener("touchstart",e=>{tX=null;if(S.view!=="day"||S.sheet||S.sel.length||e.touches.length!==1||e.target.closest(".gridwrap,.days,input,textarea,select,.bar"))return;tX=e.touches[0].clientX;tY=e.touches[0].clientY},{passive:true});
+document.addEventListener("touchend",e=>{if(tX===null)return;const dx=e.changedTouches[0].clientX-tX,dy=e.changedTouches[0].clientY-tY;tX=null;
+  if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.5){S.cur=addDays(S.cur,dx<0?1:-1);lsSet("nspca-rota-swiped",1);go()}},{passive:true});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches('[role="button"][data-act]')){e.preventDefault();e.target.click();return}});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&S.sheet&&!S.busy){S.sheet=null;render();return}
+  if(S.sheet&&S.sheet.type==="sec"&&(e.key==="ArrowLeft"||e.key==="ArrowRight")&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){S.cur=addDays(S.cur,e.key==="ArrowLeft"?-1:1);go()}
+});
 
 function applyHash(){
   const h=location.hash||"";let m;
