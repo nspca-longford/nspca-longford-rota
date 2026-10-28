@@ -38,7 +38,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 110px)}
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 110px + var(--bn))}
 button,input,select{font:inherit}
 button{cursor:pointer}
 button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -48,9 +48,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 @media (min-width:900px){
   .wide .toolbar{flex-direction:row;align-items:center;gap:16px}
   .wide .toolbar .tabs{flex:0 0 440px}
-  .wide .toolbar .navrow{flex:1;max-width:420px;margin:0 auto}
-  .wide .toolbar .ctrl{flex:0 0 auto}
-  .wide .toolbar .ctrl select{width:220px}
+  .wide .toolbar .navline{flex:1;max-width:560px;margin:0 auto}
 }
 .editbar{display:flex;align-items:center;gap:10px;background:var(--charcoal);color:#fff;border-radius:12px;padding:10px 12px}
 .editbar .who{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -70,6 +68,49 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 @media (max-width:820px){.brand{border-radius:0;margin:-16px calc(-1 * max(16px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .printhead{display:none}
+/* bottom tab bar on phones; top tabs on laptops */
+:root{--bn:0px}
+.bnav{display:none}
+@media (max-width:899px){
+  :root{--bn:calc(62px + env(safe-area-inset-bottom,0px))}
+  .bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+    padding:5px max(6px,env(safe-area-inset-right,0px)) calc(5px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  .bnav button{flex:1;border:0;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:700;font-size:11px;padding:4px 0;min-height:52px;max-width:120px;margin:0 auto}
+  .bnav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;padding:3px 14px;border-radius:99px;box-sizing:content-box}
+  .bnav button[aria-current="page"]{color:var(--fg)}
+  .bnav button[aria-current="page"] svg{background:var(--lichen);color:var(--charcoal);stroke-width:2.2}
+  .toolbar .tabs:not(.hasx){display:none}
+  .toolbar .tabs.hasx{background:transparent;padding:0;gap:8px}
+  .toolbar .tabs.hasx button[data-main]{display:none}
+  .toolbar .tabs.hasx button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:99px;min-height:38px;padding:0 14px}
+  .toolbar .tabs.hasx button[aria-selected="true"]{background:var(--charcoal);color:var(--lichen);border-color:var(--charcoal)}
+  .toolbar{gap:10px!important}
+  .bar{bottom:var(--bn);padding-bottom:12px}
+  .toast{bottom:calc(16px + var(--bn))}
+}
+.navline{display:flex;align-items:center;gap:8px}
+.navline .navrow{flex:1;min-width:0}
+.navline .navrow .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hlpill{position:relative;display:flex;align-items:center;flex:none;border:1px solid var(--line);background:var(--surface);border-radius:99px;min-height:44px;color:var(--muted)}
+.hlpill.on{background:var(--hl-bg);color:var(--hl-fg);border-color:var(--hl-bg)}
+.hlpill .ic{position:absolute;left:11px;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;pointer-events:none}
+.hlpill select{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:inherit;font-weight:700;font-size:14px;min-height:42px;padding:0 30px 0 34px;max-width:150px;border-radius:99px;text-overflow:ellipsis}
+.hlpill::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.hlpill select option{color:var(--fg);background:var(--surface)}
+.printonly{display:none}
+/* week grid on phones: three whole days per screen, snap a day at a time */
+.wkwrap{position:relative}
+.wkwrap::after{content:"";position:absolute;top:1px;right:1px;bottom:1px;width:28px;border-radius:0 10px 10px 0;background:linear-gradient(to right,transparent,var(--surface));pointer-events:none;opacity:0;transition:opacity .2s}
+.wkwrap.more::after{opacity:1}
+@media (max-width:640px){
+  #wgrid{scroll-snap-type:x mandatory;scroll-padding-left:96px}
+  #wgrid .wk{min-width:0;width:auto;table-layout:fixed}
+  #wgrid .wk tbody th,#wgrid .wk thead th:first-child{white-space:normal;width:96px;min-width:96px;max-width:96px;padding-left:6px;padding-right:6px;position:sticky;left:0;z-index:2}
+  #wgrid .wk thead th:first-child{background:var(--surface)}
+  #wgrid .wk thead th:not(:first-child),#wgrid .wk tbody td{scroll-snap-align:start;width:calc((100vw - 32px - 2px - 96px) / 3);min-width:calc((100vw - 32px - 2px - 96px) / 3);max-width:calc((100vw - 32px - 2px - 96px) / 3)}
+  #wgrid .wk td div{overflow:hidden;text-overflow:ellipsis}
+}
+
 .signscreen{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;display:flex;flex-direction:column}
 .signscreen .hero{background:var(--charcoal);color:#fff;padding:calc(36px + env(safe-area-inset-top,0px)) 24px 26px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
 .signscreen .hero .logo{width:min(300px,82vw);height:auto;color:#c5e86c}
@@ -316,6 +357,8 @@ table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-num
   body{background:#fff;color:#000;padding:0}
   .noprint,.bar,.toast,.scrim,.signscreen{display:none!important}
   .printhead{display:block}
+  .printonly{display:block}
+  .wkwrap::after{display:none}
   .gridwrap{overflow:visible;border:0}
   .wk{min-width:0;font-size:9pt}
   .mo{font-size:7pt}
@@ -329,6 +372,7 @@ table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-num
 <body>
 <div class="wrap" id="app"></div>
 <div id="overlay"></div>
+<nav id="bnav" class="bnav noprint" aria-label="Rota views"></nav>
 <script>
 /* ===== Connection — fill these two in (same values as the dog app) ===== */
 const CONFIG = {
@@ -530,6 +574,16 @@ function goDay(d,who){S.view="day";S.cur=fromIso(d);if(who){S.who=who;lsSet("nsp
 /* ---------- views ---------- */
 const svgPen='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const isToday=d=>iso(d)===iso(today0());
+const svgUser='<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+const NAVIC={day:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><circle cx="12" cy="15" r="2"/>',
+ week:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 14h10"/>',
+ month:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/>',
+ person:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+ me:'<circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5c1.3-2.2 3.3-3.3 5.5-3.3s4.2 1.1 5.5 3.3"/>'};
+function bottomNav(){
+  const t=[["day","Day"],["week","Week"],["month","Month"],["person","Person"]];if(S.session)t.push(["me","Me"]);
+  return t.map(([v,l])=>`<button data-act="view" data-v="${v}" aria-current="${S.view===v?"page":"false"}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[v]}</svg><span>${l}</span></button>`).join("");
+}
 const LOGO_SM='<svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4132 402"><g fill="currentColor"><path d="M103 170V307H0V0H124L183 116C188 126 192 128 196 128C202 128 204 123 204 113V0H307V307H207L125 168C120 159 117 156 112 156C105 156 103 161 103 170Z"/><path d="M480 248C505 248 519 240 519 222C519 165 347 220 347 91C347 32 392 0 443 0H620V88H552C543 62 530 58 496 58C477 58 455 64 455 77C455 123 631 73 631 202C631 272 572 307 524 307H353V203H422C432 235 450 248 480 248Z"/><path d="M793 225V307H669V0H904C944 0 977 34 977 90C977 155 937 207 867 207H815C798 207 793 211 793 225ZM809 156H810C841 156 861 140 861 103C861 75 846 56 815 56H811C798 56 793 59 793 74V139C793 153 798 156 809 156Z"/><path d="M1122 307C1072 307 993 259 993 153C993 48 1071 0 1129 0H1295V114H1226C1221 85 1204 68 1172 68C1133 68 1114 100 1114 153C1114 204 1140 236 1174 236C1207 236 1223 213 1227 189H1300C1286 248 1255 307 1190 307H1122Z"/><path d="M1385 307H1293L1385 0H1534L1629 307H1505C1505 307 1493 258 1490 243H1401C1396 259 1385 307 1385 307ZM1457 123C1455 115 1453 111 1446 111C1439 111 1437 115 1435 123L1419 178H1472L1457 123Z"/><rect x="1783" y="0" width="34" height="307" rx="8"/><path d="M2000-1H2099V228H2257V307H2000ZM2282 189Q2282 128 2317 97Q2352 65 2415 65Q2477 65 2512 97Q2548 128 2548 189Q2548 249 2512 281Q2477 312 2415 312Q2352 312 2317 281Q2282 250 2282 189ZM2459 202V176Q2459 126 2415 126Q2371 126 2371 176V202Q2371 252 2415 252Q2459 252 2459 202ZM2591 71H2664L2670 107H2673Q2686 86 2707 76Q2729 65 2754 65Q2795 65 2816 88Q2836 111 2836 154V307H2747V165Q2747 149 2739 140Q2731 131 2717 131Q2700 131 2690 142Q2680 153 2680 168V307H2591ZM2865 343Q2865 326 2875 312Q2886 298 2902 290Q2892 283 2885 272Q2879 261 2879 249Q2879 231 2892 217Q2905 203 2924 198Q2907 187 2897 173Q2886 158 2886 142Q2886 101 2920 83Q2953 65 3008 65Q3032 65 3047 68Q3064 57 3073 46Q3081 35 3082 26H3155Q3155 54 3142 68Q3128 83 3101 90Q3114 100 3121 113Q3128 127 3128 141Q3128 179 3100 198Q3071 217 3029 217H2995Q2967 217 2967 230Q2967 237 2973 241Q2979 244 2995 244H3076Q3115 244 3135 265Q3155 286 3155 320Q3155 344 3142 363Q3128 381 3105 391Q3083 401 3056 401H2924Q2908 401 2894 393Q2881 386 2873 373Q2865 359 2865 343ZM3041 141Q3041 127 3032 119Q3023 112 3007 112Q2992 112 2983 119Q2973 127 2973 141Q2973 156 2982 164Q2991 171 3007 171Q3023 171 3032 164Q3041 156 3041 141ZM3042 351Q3052 351 3059 345Q3066 339 3066 329Q3066 319 3059 313Q3053 307 3042 307H2973Q2962 307 2956 313Q2949 318 2949 328Q2949 339 2956 345Q2963 351 2973 351ZM3198 131H3165V71H3198V61Q3198 15 3220-4Q3242-23 3284-23Q3294-23 3309-20Q3323-18 3332-15V38H3312Q3297 38 3292 43Q3287 48 3287 61V71H3332V131H3287V307H3198ZM3351 189Q3351 128 3387 97Q3422 65 3484 65Q3546 65 3582 97Q3617 128 3617 189Q3617 249 3582 281Q3546 312 3484 312Q3422 312 3387 281Q3351 250 3351 189ZM3528 202V176Q3528 126 3484 126Q3440 126 3440 176V202Q3440 252 3484 252Q3528 252 3528 202ZM3660 71H3733L3739 107H3742Q3750 87 3767 76Q3783 65 3804 65Q3820 65 3830 70V145H3802Q3774 145 3762 159Q3749 174 3749 202V307H3660ZM3848 188Q3848 128 3874 96Q3900 65 3948 65Q3968 65 3985 72Q4001 79 4011 93H4014V-17H4103V307H4031L4025 273H4022Q3997 312 3948 312Q3900 312 3874 281Q3848 250 3848 188ZM4015 196V182Q4015 159 4005 145Q3996 131 3976 131Q3937 131 3937 177V201Q3937 247 3976 247Q3996 247 4005 233Q4015 219 4015 196Z"/></g></svg>';
 const LOGO_LG='<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2753 307" role="img" aria-label="NSPCA. National Society for Prevention of Cruelty to Animals"><g fill="currentColor"><path d="M103 170V307H0V0H124L183 116C188 126 192 128 196 128C202 128 204 123 204 113V0H307V307H207L125 168C120 159 117 156 112 156C105 156 103 161 103 170Z"/><path d="M480 248C505 248 519 240 519 222C519 165 347 220 347 91C347 32 392 0 443 0H620V88H552C543 62 530 58 496 58C477 58 455 64 455 77C455 123 631 73 631 202C631 272 572 307 524 307H353V203H422C432 235 450 248 480 248Z"/><path d="M793 225V307H669V0H904C944 0 977 34 977 90C977 155 937 207 867 207H815C798 207 793 211 793 225ZM809 156H810C841 156 861 140 861 103C861 75 846 56 815 56H811C798 56 793 59 793 74V139C793 153 798 156 809 156Z"/><path d="M1122 307C1072 307 993 259 993 153C993 48 1071 0 1129 0H1295V114H1226C1221 85 1204 68 1172 68C1133 68 1114 100 1114 153C1114 204 1140 236 1174 236C1207 236 1223 213 1227 189H1300C1286 248 1255 307 1190 307H1122Z"/><path d="M1385 307H1293L1385 0H1534L1629 307H1505C1505 307 1493 258 1490 243H1401C1396 259 1385 307 1385 307ZM1457 123C1455 115 1453 111 1446 111C1439 111 1437 115 1435 123L1419 178H1472L1457 123Z"/><rect x="1743" y="0" width="34" height="307" rx="8"/><path d="M1934 8 1960 7V14L1951 17L1953 15V76H1937L1907 22L1909 22V69L1907 66L1916 69V76H1891V69L1900 66L1898 69V15L1899 17L1891 15V8L1914 7L1943 60L1941 60V15L1943 17L1934 15ZM2009 69 2007 66 2016 69V76L1999 77L1997 67L1998 68Q1994 72 1989 75Q1985 77 1980 77Q1974 77 1970 73Q1965 69 1965 62Q1965 56 1968 53Q1970 50 1975 48Q1979 47 1986 47H1997L1996 48V41Q1996 37 1993 35Q1991 33 1987 33Q1985 33 1983 33Q1980 34 1978 34L1979 33L1978 41H1969L1968 27Q1975 25 1980 24Q1986 23 1991 23Q2000 23 2004 27Q2009 31 2009 39ZM1979 60Q1979 64 1981 66Q1983 67 1985 67Q1988 67 1991 66Q1994 64 1996 62L1996 64V53L1997 54H1988Q1983 54 1981 55Q1979 57 1979 60ZM2039 77Q2032 77 2029 73Q2025 69 2025 61V31L2027 33H2018V26L2027 23L2025 26V13L2039 10V26L2037 24H2052L2052 33H2037L2039 31V59Q2039 63 2040 65Q2042 67 2044 67Q2046 67 2048 67Q2050 66 2052 65L2054 73Q2046 77 2039 77ZM2078 68 2077 67 2085 69V76H2058V69L2066 67L2065 68V32L2066 33L2058 31V24L2078 24ZM2071 16Q2068 16 2065 14Q2063 12 2063 8Q2063 4 2066 2Q2068 0 2071 0Q2075 0 2077 2Q2079 4 2079 8Q2079 12 2077 14Q2075 16 2071 16ZM2115 23Q2127 23 2133 30Q2140 36 2140 49Q2140 58 2136 64Q2133 70 2127 74Q2122 77 2113 77Q2102 77 2096 70Q2089 64 2089 51Q2089 42 2092 36Q2096 30 2101 26Q2107 23 2115 23ZM2115 33Q2109 33 2106 37Q2104 41 2104 50Q2104 59 2106 63Q2109 67 2114 67Q2118 67 2121 65Q2123 64 2124 60Q2125 56 2125 50Q2125 41 2123 37Q2120 33 2115 33ZM2145 76V69L2154 67L2152 69V31L2154 34L2145 31V24L2163 23L2164 33L2163 32Q2167 27 2173 25Q2178 23 2183 23Q2189 23 2194 27Q2198 31 2198 40V69L2197 67L2204 69V76H2178V69L2186 67L2184 69V42Q2184 38 2182 35Q2180 33 2177 33Q2174 33 2171 35Q2168 36 2165 39L2166 37V69L2164 67L2171 69V76ZM2252 69 2251 66 2259 69V76L2242 77L2240 67L2241 68Q2237 72 2232 75Q2228 77 2223 77Q2217 77 2213 73Q2209 69 2209 62Q2209 56 2211 53Q2213 50 2218 48Q2223 47 2229 47H2240L2239 48V41Q2239 37 2237 35Q2234 33 2230 33Q2228 33 2226 33Q2223 34 2221 34L2222 33L2221 41H2212L2212 27Q2218 25 2224 24Q2229 23 2234 23Q2243 23 2248 27Q2252 31 2252 39ZM2222 60Q2222 64 2224 66Q2226 67 2228 67Q2231 67 2234 66Q2237 64 2239 62L2239 64V53L2240 54H2231Q2226 54 2224 55Q2222 57 2222 60ZM2282 68 2281 67 2289 69V76H2262V69L2269 67L2268 68V9L2269 10L2262 8V1L2282 0ZM2327 25Q2327 27 2329 29Q2331 31 2334 33Q2337 34 2341 35Q2345 36 2348 38Q2352 39 2355 42Q2358 44 2360 47Q2362 51 2362 56Q2362 63 2358 68Q2355 73 2348 75Q2342 77 2335 77Q2329 77 2324 76Q2319 75 2313 73L2314 55H2322L2324 67L2323 64Q2326 66 2329 66Q2332 67 2335 67Q2339 67 2342 66Q2345 65 2347 63Q2348 61 2348 58Q2348 55 2347 53Q2345 51 2342 50Q2338 48 2335 47Q2331 46 2327 45Q2323 43 2320 41Q2317 39 2315 35Q2313 32 2313 27Q2313 20 2317 15Q2320 11 2326 8Q2331 6 2338 6Q2343 6 2349 7Q2354 8 2360 10L2359 28H2351L2349 17L2350 19Q2348 18 2345 17Q2342 17 2339 17Q2336 17 2333 17Q2330 18 2329 20Q2327 22 2327 25ZM2395 23Q2407 23 2413 30Q2420 36 2420 49Q2420 58 2417 64Q2413 70 2408 74Q2402 77 2393 77Q2382 77 2376 70Q2369 64 2369 51Q2369 42 2372 36Q2376 30 2381 26Q2387 23 2395 23ZM2395 33Q2389 33 2386 37Q2384 41 2384 50Q2384 59 2386 63Q2389 67 2394 67Q2398 67 2401 65Q2403 64 2404 60Q2405 56 2405 50Q2405 41 2403 37Q2400 33 2395 33ZM2449 77Q2443 77 2437 74Q2432 71 2429 65Q2426 59 2426 50Q2426 43 2428 37Q2430 32 2434 29Q2438 26 2442 24Q2447 23 2452 23Q2457 23 2461 24Q2466 25 2469 27L2469 41H2460L2459 33L2460 34Q2458 33 2456 33Q2454 33 2452 33Q2448 33 2445 35Q2442 37 2441 41Q2440 44 2440 50Q2440 55 2441 59Q2443 63 2446 65Q2449 67 2452 67Q2455 67 2459 66Q2463 65 2467 62L2471 69Q2466 73 2460 75Q2455 77 2449 77ZM2496 68 2495 67 2502 69V76H2476V69L2483 67L2482 68V32L2483 33L2476 31V24L2496 24ZM2489 16Q2485 16 2483 14Q2481 12 2481 8Q2481 4 2483 2Q2485 0 2489 0Q2492 0 2495 2Q2497 4 2497 8Q2497 12 2494 14Q2492 16 2489 16ZM2531 77Q2524 77 2518 74Q2513 71 2510 65Q2507 59 2507 51Q2507 42 2510 36Q2513 30 2519 26Q2525 23 2533 23Q2540 23 2545 26Q2550 29 2552 34Q2554 39 2554 46Q2554 47 2554 49Q2554 51 2554 53H2518V45H2542L2540 46Q2540 42 2539 39Q2539 36 2537 34Q2535 33 2531 33Q2528 33 2525 35Q2523 37 2522 41Q2521 44 2521 49Q2521 54 2522 58Q2524 62 2526 65Q2529 67 2534 67Q2537 67 2541 66Q2545 65 2549 62L2554 69Q2548 73 2542 75Q2536 77 2531 77ZM2579 77Q2573 77 2569 73Q2566 69 2566 61V31L2567 33H2558V26L2568 23L2566 26V13L2579 10V26L2578 24H2593L2592 33H2578L2579 31V59Q2579 63 2581 65Q2582 67 2585 67Q2586 67 2588 67Q2590 66 2592 65L2595 73Q2587 77 2579 77ZM2597 99 2598 89Q2599 89 2601 90Q2602 90 2603 90Q2608 90 2610 88Q2613 86 2615 83Q2617 79 2619 73L2618 78L2600 32L2601 33L2595 31V24L2620 24V31L2613 32L2613 31L2626 68L2623 67L2634 31L2634 33L2628 31V24L2650 24V31L2644 32L2646 31L2630 76Q2628 81 2626 86Q2623 90 2620 93Q2617 96 2614 98Q2610 100 2604 100Q2601 100 2597 99Z"/><path d="M1890 178V171L1898 169L1897 171V134L1898 136H1890V129L1898 126L1897 128V122Q1897 112 1902 107Q1908 102 1917 102Q1920 102 1923 102Q1926 103 1929 104L1927 113Q1925 112 1923 112Q1921 111 1919 111Q1915 111 1913 114Q1910 116 1910 121V128L1908 127H1922L1922 136H1909L1910 134V171L1909 169L1918 171V178ZM1952 125Q1964 125 1970 132Q1977 139 1977 151Q1977 160 1974 166Q1970 173 1965 176Q1959 180 1951 180Q1939 180 1933 173Q1926 166 1926 153Q1926 145 1930 138Q1933 132 1938 129Q1944 125 1952 125ZM1952 135Q1946 135 1943 139Q1941 144 1941 153Q1941 162 1943 166Q1946 170 1951 170Q1955 170 1958 168Q1960 166 1961 162Q1962 158 1962 152Q1962 143 1960 139Q1957 135 1952 135ZM1983 178V171L1990 169L1989 171V134L1991 136L1983 134V127L2000 126L2001 135L2000 135Q2004 130 2008 128Q2013 125 2017 125Q2021 125 2024 126L2023 144H2015L2014 134L2015 136Q2015 136 2014 136Q2013 136 2013 136Q2010 136 2007 138Q2004 140 2002 142L2003 139V171L2001 169L2011 171V178ZM2073 154H2065L2068 152V171L2066 169L2077 171V178H2047V171L2056 169L2054 171V117L2056 120L2047 117V110L2068 110H2077Q2085 110 2090 113Q2095 115 2098 120Q2100 125 2100 131Q2100 137 2097 143Q2094 148 2088 151Q2082 154 2073 154ZM2075 120H2066L2068 118V146L2065 144H2073Q2079 144 2083 141Q2086 137 2086 131Q2086 126 2083 123Q2080 120 2075 120ZM2105 178V171L2113 169L2112 171V134L2113 136L2105 134V127L2122 126L2124 135L2122 135Q2127 130 2131 128Q2135 125 2140 125Q2143 125 2147 126L2146 144H2138L2137 134L2138 136Q2137 136 2137 136Q2136 136 2136 136Q2133 136 2130 138Q2127 140 2124 142L2125 139V171L2124 169L2134 171V178ZM2175 180Q2168 180 2163 177Q2157 174 2154 168Q2151 162 2151 153Q2151 145 2154 138Q2158 132 2163 129Q2169 125 2177 125Q2185 125 2189 128Q2194 131 2196 136Q2199 142 2199 148Q2199 150 2198 151Q2198 153 2198 155H2162V147H2186L2185 148Q2185 144 2184 141Q2183 138 2181 137Q2179 135 2176 135Q2172 135 2170 137Q2167 139 2166 143Q2165 147 2165 151Q2165 157 2167 161Q2168 165 2171 167Q2174 169 2178 169Q2182 169 2185 168Q2189 167 2193 165L2198 172Q2192 176 2187 178Q2181 180 2175 180ZM2233 127 2255 126V133L2250 135L2252 133L2235 179H2219L2205 134L2207 135L2201 134V127L2225 126V133L2218 135L2219 133L2229 170H2228L2239 134L2240 135L2233 134ZM2282 180Q2275 180 2269 177Q2264 174 2261 168Q2258 162 2258 153Q2258 145 2261 138Q2264 132 2270 129Q2276 125 2283 125Q2291 125 2296 128Q2301 131 2303 136Q2305 142 2305 148Q2305 150 2305 151Q2305 153 2305 155H2269V147H2293L2291 148Q2291 144 2290 141Q2290 138 2288 137Q2286 135 2282 135Q2279 135 2276 137Q2274 139 2273 143Q2272 147 2272 151Q2272 157 2273 161Q2274 165 2277 167Q2280 169 2285 169Q2288 169 2292 168Q2296 167 2300 165L2305 172Q2299 176 2293 178Q2287 180 2282 180ZM2311 178V171L2319 169L2318 171V134L2319 136L2311 134V127L2328 126L2330 135L2328 135Q2333 130 2338 127Q2344 125 2348 125Q2355 125 2359 129Q2364 133 2364 142V171L2362 169L2370 171V178H2344V171L2352 169L2350 171V145Q2350 140 2348 138Q2346 136 2342 136Q2340 136 2337 137Q2333 138 2330 141L2331 139V171L2330 169L2337 171V178ZM2393 180Q2386 180 2383 175Q2379 171 2379 163V134L2381 135H2372V128L2381 126L2379 128V115L2393 112V128L2392 126H2406L2406 135H2392L2393 134V162Q2393 166 2394 168Q2396 169 2398 169Q2400 169 2402 169Q2404 168 2406 168L2409 175Q2400 180 2393 180ZM2433 170 2432 169 2439 171V178H2412V171L2420 169L2419 170V135L2420 136L2412 134V127L2433 126ZM2425 118Q2422 118 2420 116Q2417 114 2417 110Q2417 106 2420 104Q2422 102 2425 102Q2429 102 2431 104Q2433 106 2433 110Q2433 114 2431 116Q2429 118 2425 118ZM2469 125Q2481 125 2487 132Q2494 139 2494 151Q2494 160 2491 166Q2488 173 2482 176Q2476 180 2468 180Q2456 180 2450 173Q2444 166 2444 153Q2444 145 2447 138Q2450 132 2455 129Q2461 125 2469 125ZM2469 135Q2463 135 2460 139Q2458 144 2458 153Q2458 162 2460 166Q2463 170 2468 170Q2472 170 2475 168Q2477 166 2478 162Q2480 158 2480 152Q2480 143 2477 139Q2474 135 2469 135ZM2500 178V171L2508 169L2506 171V134L2508 136L2500 134V127L2517 126L2519 135L2517 135Q2521 130 2527 127Q2532 125 2537 125Q2543 125 2548 129Q2552 133 2552 142V171L2551 169L2559 171V178H2533V171L2540 169L2538 171V145Q2538 140 2536 138Q2534 136 2531 136Q2528 136 2525 137Q2522 138 2519 141L2520 139V171L2519 169L2526 171V178ZM2606 125Q2617 125 2624 132Q2630 139 2630 151Q2630 160 2627 166Q2624 173 2618 176Q2612 180 2604 180Q2593 180 2586 173Q2580 166 2580 153Q2580 145 2583 138Q2586 132 2592 129Q2598 125 2606 125ZM2605 135Q2600 135 2597 139Q2594 144 2594 153Q2594 162 2597 166Q2600 170 2605 170Q2609 170 2611 168Q2614 166 2615 162Q2616 158 2616 152Q2616 143 2613 139Q2611 135 2605 135ZM2636 178V171L2644 169L2643 171V134L2644 136H2636V129L2644 126L2643 128V122Q2643 112 2648 107Q2654 102 2663 102Q2666 102 2669 102Q2672 103 2675 104L2673 113Q2671 112 2669 112Q2667 111 2666 111Q2662 111 2659 114Q2657 116 2657 121V128L2655 127H2669L2668 136H2655L2657 134V171L2655 169L2664 171V178Z"/><path d="M1920 282Q1912 282 1906 278Q1899 274 1895 266Q1891 258 1891 247Q1891 235 1895 227Q1899 219 1906 215Q1913 211 1923 211Q1928 211 1933 212Q1938 213 1944 216L1944 234H1935L1933 222L1935 224Q1932 223 1929 222Q1926 222 1923 222Q1917 222 1914 224Q1910 227 1908 232Q1906 238 1906 245Q1906 254 1908 259Q1911 265 1915 268Q1919 271 1924 271Q1928 271 1932 269Q1936 267 1940 264L1945 272Q1939 277 1933 279Q1926 282 1920 282ZM1951 281V274L1959 271L1958 274V236L1959 238L1951 236V229L1969 228L1970 237L1969 237Q1973 232 1977 230Q1982 227 1986 227Q1989 227 1993 228L1992 246H1984L1983 236L1984 239Q1984 238 1983 238Q1982 238 1982 238Q1979 238 1976 240Q1973 242 1970 245L1972 241V274L1970 271L1980 274V281ZM2017 282Q2011 282 2006 278Q2002 273 2002 265V236L2003 238L1995 236V229L2016 228V263Q2016 267 2018 269Q2020 271 2023 271Q2026 271 2029 270Q2032 269 2035 266L2034 268V236L2035 238L2028 236V229L2048 228V273L2046 271L2054 274V281L2037 281L2035 272L2037 272Q2032 277 2027 280Q2022 282 2017 282ZM2083 282Q2076 282 2070 279Q2065 276 2062 270Q2059 264 2059 256Q2059 247 2062 241Q2065 234 2071 231Q2077 227 2085 227Q2092 227 2097 230Q2102 233 2104 239Q2106 244 2106 251Q2106 252 2106 254Q2106 255 2106 257H2070V249H2094L2092 250Q2092 247 2092 244Q2091 241 2089 239Q2087 237 2084 237Q2080 237 2077 240Q2075 242 2074 245Q2073 249 2073 254Q2073 259 2074 263Q2076 267 2078 269Q2081 272 2086 272Q2089 272 2093 271Q2097 269 2101 267L2106 274Q2100 278 2094 280Q2088 282 2083 282ZM2131 273 2130 271 2138 274V281H2111V274L2119 271L2118 273V214L2119 215L2111 213V206L2131 205ZM2162 282Q2155 282 2151 278Q2148 274 2148 266V236L2150 238H2140V230L2150 228L2148 230V217L2162 215V230L2160 229H2175L2175 238H2160L2162 236V264Q2162 268 2163 270Q2164 272 2167 272Q2169 272 2171 271Q2172 271 2175 270L2177 277Q2169 282 2162 282ZM2179 304 2180 294Q2182 294 2183 294Q2184 294 2186 294Q2190 294 2193 293Q2195 291 2197 287Q2199 284 2201 278L2201 283L2182 236L2183 237L2178 236V229L2202 228V235L2195 237L2196 236L2208 272L2205 272L2216 236L2217 237L2210 236V229L2233 228V235L2227 237L2228 236L2212 281Q2210 286 2208 290Q2206 295 2203 298Q2200 301 2196 303Q2192 304 2187 304Q2183 304 2179 304ZM2272 282Q2265 282 2262 278Q2258 274 2258 266V236L2260 238H2251V230L2260 228L2258 230V217L2272 215V230L2270 229H2285L2285 238H2270L2272 236V264Q2272 268 2273 270Q2275 272 2277 272Q2279 272 2281 271Q2283 271 2285 270L2287 277Q2279 282 2272 282ZM2317 227Q2329 227 2335 234Q2342 241 2342 254Q2342 262 2339 269Q2335 275 2330 278Q2324 282 2316 282Q2304 282 2298 275Q2291 268 2291 256Q2291 247 2294 241Q2298 234 2303 231Q2309 227 2317 227ZM2317 237Q2311 237 2308 242Q2306 246 2306 255Q2306 264 2308 268Q2311 272 2316 272Q2320 272 2323 270Q2325 268 2326 264Q2327 260 2327 254Q2327 245 2325 241Q2322 237 2317 237ZM2427 274 2423 271 2431 274V281H2403V274L2412 271L2411 273L2407 261L2409 262H2383L2385 261L2381 273L2380 271L2388 274V281H2362V274L2371 271L2367 274L2390 212L2405 212ZM2387 254 2386 253H2407L2405 255L2395 220L2398 220ZM2435 281V274L2443 271L2441 273V236L2443 238L2435 236V229L2452 228L2453 237L2452 237Q2456 232 2462 230Q2467 227 2472 227Q2478 227 2483 232Q2487 236 2487 244V273L2486 271L2493 274V281H2467V274L2475 271L2473 274V247Q2473 242 2471 240Q2469 238 2466 238Q2463 238 2460 239Q2457 241 2454 244L2455 242V274L2453 272L2461 274V281ZM2517 273 2516 271 2524 274V281H2497V274L2505 271L2504 273V237L2505 238L2497 236V229L2517 228ZM2510 221Q2507 221 2505 219Q2502 217 2502 213Q2502 209 2505 207Q2507 205 2510 205Q2514 205 2516 207Q2518 209 2518 213Q2518 217 2516 219Q2514 221 2510 221ZM2578 237 2577 237Q2581 232 2587 230Q2592 227 2596 227Q2603 227 2607 232Q2611 236 2611 244V273L2610 271L2617 274V281H2592V274L2599 271L2597 274V247Q2597 242 2595 240Q2594 238 2590 238Q2588 238 2585 239Q2582 241 2579 244L2580 241Q2580 242 2580 242Q2580 243 2580 243V273L2578 271L2585 274V281H2561V274L2568 271L2566 274V247Q2566 242 2564 240Q2562 238 2559 238Q2557 238 2554 239Q2551 241 2548 244L2548 242V274L2547 272L2554 274V281H2528V274L2536 271L2535 273V236L2536 238L2528 236V229L2545 228L2547 237L2545 237Q2550 232 2555 230Q2560 227 2565 227Q2570 227 2573 230Q2577 232 2578 237ZM2665 274 2664 271 2672 274V281L2655 281L2653 272L2654 272Q2650 277 2646 279Q2641 282 2636 282Q2630 282 2626 278Q2622 274 2622 266Q2622 261 2624 258Q2626 254 2631 253Q2636 251 2642 251H2653L2652 252V246Q2652 241 2650 239Q2647 238 2643 238Q2641 238 2639 238Q2636 238 2634 239L2635 238L2634 246H2625L2625 231Q2631 229 2637 228Q2642 227 2647 227Q2656 227 2661 231Q2665 235 2665 243ZM2635 265Q2635 269 2637 270Q2639 272 2641 272Q2644 272 2647 271Q2650 269 2652 266L2652 269V258L2653 259H2644Q2639 259 2637 260Q2635 262 2635 265ZM2695 273 2694 271 2702 274V281H2675V274L2682 271L2681 273V214L2682 215L2675 213V206L2695 205ZM2721 242Q2721 244 2723 245Q2725 247 2728 248Q2731 249 2735 250Q2738 251 2741 253Q2744 254 2746 257Q2748 260 2748 264Q2748 270 2745 274Q2742 278 2737 280Q2731 282 2725 282Q2721 282 2716 281Q2712 281 2707 279L2708 265H2716L2718 273L2716 271Q2718 272 2721 272Q2723 273 2725 273Q2727 273 2729 272Q2732 271 2733 270Q2735 269 2735 267Q2735 264 2733 263Q2731 262 2728 261Q2725 260 2721 259Q2718 258 2715 256Q2712 254 2710 251Q2708 248 2708 244Q2708 238 2711 234Q2713 231 2718 229Q2723 227 2729 227Q2732 227 2737 228Q2741 229 2746 230L2746 243H2737L2735 236L2737 238Q2733 236 2729 236Q2726 236 2723 238Q2721 239 2721 242Z"/></g></svg>';
 
@@ -553,17 +607,20 @@ function header(){
   if(S.isAdmin){const w=S.reqs.filter(r=>r.status==="waiting").length;tabs.push(["requests","Requests"+(w?`<span class="badge">${w}</span>`:"")])}
   if(S.editing) tabs.push(["staff","Staff"]);
   let tb="";
-  tb+=`<div class="tabs noprint" role="tablist">${tabs.map(([v,l])=>`<button role="tab" data-act="view" data-v="${v}" aria-selected="${S.view===v}">${l}</button>`).join("")}</div>`;
+  const MAIN=["day","week","month","person","me"],extra=tabs.some(([v])=>!MAIN.includes(v));
+  tb+=`<div class="tabs noprint${extra?" hasx":""}" role="tablist">${tabs.map(([v,l])=>`<button role="tab" data-act="view" data-v="${v}"${MAIN.includes(v)?' data-main="1"':""} aria-selected="${S.view===v}">${l}</button>`).join("")}</div>`;
+  let nav="";
   if(S.view==="day"||S.view==="week"){
     const ws=monday(S.cur),thisWeek=iso(ws)===iso(monday(today0()));
-    tb+=`<div class="navrow noprint"><button class="step" data-act="prevw" aria-label="Previous week">‹</button><span class="lbl">${thisWeek?"This week":esc(weekLabel(ws))}</span>${thisWeek?"":`<button class="btn small" data-act="thisweek">Today</button>`}<button class="step" data-act="nextw" aria-label="Next week">›</button></div>`;
+    nav=`<div class="navrow noprint"><button class="step" data-act="prevw" aria-label="Previous week">‹</button><span class="lbl">${thisWeek?"This week":esc(weekLabel(ws))}</span>${thisWeek?"":`<button class="btn small" data-act="thisweek">Today</button>`}<button class="step" data-act="nextw" aria-label="Next week">›</button></div>`;
   }else if(S.view==="month"||S.view==="person"){
-    tb+=`<div class="navrow noprint"><button class="step" data-act="prevm" aria-label="Previous month">‹</button><span class="lbl">${ML[S.my.m]} ${S.my.y}</span><button class="step" data-act="nextm" aria-label="Next month">›</button></div>`;
+    nav=`<div class="navrow noprint"><button class="step" data-act="prevm" aria-label="Previous month">‹</button><span class="lbl">${ML[S.my.m]} ${S.my.y}</span><button class="step" data-act="nextm" aria-label="Next month">›</button></div>`;
   }
   if(!["staff","me","requests"].includes(S.view)){
     const names=activeStaff().map(p=>p.name);
-    tb+=`<div class="ctrl noprint"><label for="who">${S.view==="person"?"Person":"Highlight"}</label><select id="who">${S.view==="person"?"":`<option value="">Nobody</option>`}${names.map(n=>`<option${n===S.who?" selected":""}>${esc(n)}</option>`).join("")}</select></div>`;
+    nav+=`<label class="hlpill noprint${S.who?" on":""}" title="${S.view==="person"?"Person":"Highlight someone"}">${svgUser}<select id="who" aria-label="${S.view==="person"?"Person":"Highlight someone"}">${S.view==="person"?"":`<option value="">Highlight</option>`}${names.map(n=>`<option${n===S.who?" selected":""}>${esc(n)}</option>`).join("")}</select></div>`;
   }
+  if(nav) tb+=`<div class="navline noprint">${nav}</div>`;
   h+=`<div class="toolbar noprint">${tb}</div>`;
   return h;
 }
@@ -584,7 +641,7 @@ function dayView(){
     const bad=S.editing&&(issuesFor(xi).length>0||shortFor(xi).length>0);
     const c=!S.editing&&!S.opened[xi]?changedFor(xi):null,isNew=c&&c.any;
     h+=`<button data-act="day" data-d="${xi}" aria-pressed="${xi===d}"><span class="dn">${DN[x.getDay()]}</span><span class="dd">${x.getDate()}</span><span class="dot${bad?" bad":isNew?" new":isToday(x)?" today":""}"></span></button>`;}
-  h+=`</div><h2>${esc(dayLong(S.cur))}${isToday(S.cur)?" · Today":""}</h2>`;
+  h+=`</div><h2 class="printonly">${esc(dayLong(S.cur))}${isToday(S.cur)?" · Today":""}</h2>`;
   if(S.editing){
     const iss=issuesFor(d);
     const sh=shortFor(d);
@@ -617,11 +674,11 @@ function dayView(){
 
 function weekView(){
   const ws=monday(S.cur);const days=[...Array(7)].map((_,i)=>addDays(ws,i));
-  let h=`<div class="gridwrap"><table class="wk"><thead><tr><th></th>${days.map(x=>`<th class="${isToday(x)?"cur":""}">${DN[x.getDay()]} ${x.getDate()}</th>`).join("")}</tr></thead><tbody>`;
+  let h=`<div class="wkwrap"><div class="gridwrap" id="wgrid"><table class="wk"><thead><tr><th></th>${days.map(x=>`<th class="${isToday(x)?"cur":""}">${DN[x.getDay()]} ${x.getDate()}</th>`).join("")}</tr></thead><tbody>`;
   for(const [s,hue] of SECTIONS){
     h+=`<tr><th style="--h:${hue}">${esc(s)}</th>${days.map(x=>`<td style="--h:${hue}">${plOf(iso(x),s).map(n=>`<div>${n===S.who?`<span class="me">${esc(n)}</span>`:esc(n)}</div>`).join("")}</td>`).join("")}</tr>`;
   }
-  h+=`</tbody></table></div><div class="noprint ctrl"><button class="btn" data-act="print">Print this week</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="week">Notify staff</button>`:""}</div>`;
+  h+=`</tbody></table></div></div><div class="noprint ctrl"><button class="btn" data-act="print">Print this week</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="week">Notify staff</button>`:""}</div>`;
   return h;
 }
 
@@ -809,7 +866,7 @@ function overlay(){
     <form class="form" id="signinForm"><label for="si-email">Email</label><input type="email" id="si-email" autocomplete="username" required>
     <label for="si-pass">Password</label><input type="password" id="si-pass" autocomplete="current-password" required>
     ${S.signinErr?`<div class="err">${esc(S.signinErr)}</div>`:""}<button class="btn dark" type="submit"${S.busy?" disabled":""}>${S.busy?"Signing in…":"Sign in"}</button></form>
-    <span class="help">Forgotten your password? Ask Shane, Ciara or Sarah.</span>
+    <span class="help">Forgotten your password? Contact an admin.</span>
     <button class="skip" data-act="viewonly">Just view the rota</button></div></div>`;
   }
   h+=`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">`;
@@ -876,12 +933,20 @@ function overlay(){
 
 function render(){
   const g=document.getElementById("mgrid"),gl=g?g.scrollLeft:null;
+  const wg0=document.getElementById("wgrid"),wgl=wg0?wg0.scrollLeft:null;
   let body="";
   if(S.view==="day")body=dayView();else if(S.view==="week")body=weekView();else if(S.view==="month")body=monthView();else if(S.view==="person")body=personView();else if(S.view==="me")body=meView();else if(S.view==="requests")body=requestsView();else body=staffView();
   const app=document.getElementById("app");app.classList.toggle("wide",S.view==="month");
   app.innerHTML=header()+body+footer();
   document.getElementById("overlay").innerHTML=overlay();
-  document.body.style.paddingBottom=S.editing&&S.sel.length?"calc(env(safe-area-inset-bottom,0px) + 210px)":"";
+  document.getElementById("bnav").innerHTML=bottomNav();
+  document.body.style.paddingBottom=S.editing&&S.sel.length?"calc(env(safe-area-inset-bottom,0px) + var(--bn) + 210px)":"";
+  const wg=document.getElementById("wgrid");
+  if(wg){const fade=()=>wg.parentNode.classList.toggle("more",wg.scrollLeft+wg.clientWidth<wg.scrollWidth-4);wg.onscroll=fade;
+    const cur=wg.querySelector("thead th.cur"),first=wg.querySelector("thead th");
+    if(cur&&S.wkAuto!==iso(monday(S.cur))){S.wkAuto=iso(monday(S.cur));wg.scrollLeft=Math.max(0,cur.offsetLeft-first.offsetWidth)}
+    else if(wgl!==null) wg.scrollLeft=wgl;
+    fade();}
   const ng=document.getElementById("mgrid");
   if(ng){ if(gl!==null) ng.scrollLeft=gl; else if(S.my.y===today0().getFullYear()&&S.my.m===today0().getMonth()) ng.scrollLeft=Math.max(0,(today0().getDate()-3)*38); }
   const sel=document.getElementById("who");
