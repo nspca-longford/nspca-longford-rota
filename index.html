@@ -206,9 +206,11 @@ textarea{padding:10px 12px;border-radius:10px;border:1px solid var(--line);backg
 .cover{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .cover .dotc{width:12px;height:12px;border-radius:50%;flex:none}
 .cover>div{flex:1;min-width:0;display:flex;flex-direction:column}
-.loginrow{display:grid;grid-template-columns:7rem 1fr auto;gap:8px;align-items:center;padding:4px 0}
+.loginrow{display:grid;grid-template-columns:7rem 1fr 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.loginrow input{min-width:0}
+.jobtitle{margin:0;font-size:.95rem;font-weight:700;color:var(--muted)}
 .loginrow span{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:420px){.loginrow{grid-template-columns:1fr auto}.loginrow span{grid-column:1/-1}}
+@media (max-width:640px){.loginrow{grid-template-columns:1fr auto}.loginrow span{grid-column:1/-1}.loginrow input[type=text]{grid-column:1/-1}}
 .tabs button{border:0;background:transparent;color:var(--muted);padding:9px 10px;border-radius:7px;font-weight:700;font-size:.92rem;min-height:42px;white-space:nowrap}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.12)}
 .navrow{display:flex;align-items:center;gap:8px}
@@ -383,7 +385,8 @@ const CONFIG = {
 /* ======================================================================= */
 
 const SECTIONS = [["Kennels",212],["Quiet",178],["Cattery / Cat ISO",270],["Small Mammals",40],["Isolation",356],["Stables",24],["Reception",320],["Rehoming",135],["Super / Vet / Admin",225]];
-const TEAMS = [["Dogs",28],["Cats & small animals",290],["Stables",140],["Reception & office",48]];
+const TEAMS = [["Dogs",28],["Cats & small animals",290],["Stables",140],["Reception & office",48],["Maintenance",200]];
+const NOSEC = new Set(["Maintenance"]); // on the month, never placed on a section
 const TEAM_HUE = Object.fromEntries(TEAMS);
 const TEAM_ORDER = Object.fromEntries(TEAMS.map((t,i)=>[t[0],i]));
 const LABEL = {X:"X",O:"OFF",A:"A/L",S:"SICK",T:"TOIL"};
@@ -459,7 +462,7 @@ function clearData(){S.status=new Map();S.place=new Map();S.loaded=new Set()}
 
 async function loadBase(){
   const [staff,pub]=await Promise.all([
-    api("rota_staff?select=name,team,sort,active&order=sort.asc,name.asc"),
+    api("rota_staff?select=name,team,sort,active,title&order=sort.asc,name.asc").catch(()=>api("rota_staff?select=name,team,sort,active&order=sort.asc,name.asc")),
     api("rota_published?select=at,by_email&order=at.desc&limit=1")]);
   S.staff=staff||[]; S.pub=(pub&&pub[0])||null;
   try{const r=await api("rota_settings?select=value&key=eq.minimums");S.mins=(r&&r[0]&&r[0].value)||{}}catch(e){S.mins=S.mins||{}}
@@ -515,13 +518,15 @@ function setPl(day,s,names){const k=pk(day,s),srv=S.place.get(k)||[];if(names.jo
 const pendCount=()=>S.pend.status.size+S.pend.place.size;
 const placeChanged=(day,s)=>S.pend.place.has(pk(day,s));
 const sortStaff=a=>a.slice().sort((x,y)=>(TEAM_ORDER[x.team]??9)-(TEAM_ORDER[y.team]??9)||x.sort-y.sort||x.name.localeCompare(y.name));
+const titleOf=n=>((S.staff.find(p=>p.name===n)||{}).title||"").trim();
 const activeStaff=()=>sortStaff(S.staff.filter(s=>s.active));
+const placeable=()=>activeStaff().filter(p=>!NOSEC.has(p.team));
 const hueOf=n=>{const s=S.staff.find(x=>x.name===n);return TEAM_HUE[s&&s.team]??210};
 const placedIn=(day,n)=>SECTIONS.filter(([s])=>plOf(day,s).includes(n)).map(x=>x[0]);
 function issuesFor(day){
   const out=[];
   for(const [s] of SECTIONS) for(const n of plOf(day,s)){const c=stOf(day,n);if(c&&c!=="X")out.push({kind:"off",n,s,c})}
-  for(const p of activeStaff()) if(stOf(day,p.name)==="X"&&!placedIn(day,p.name).length) out.push({kind:"unplaced",n:p.name});
+  for(const p of placeable()) if(stOf(day,p.name)==="X"&&!placedIn(day,p.name).length) out.push({kind:"unplaced",n:p.name});
   return out;
 }
 function weekEmpty(ws){
@@ -566,7 +571,7 @@ function openDaySeen(d){
 function weekX(d,n){const ws=monday(fromIso(d));let k=0;for(let i=0;i<7;i++)if(stOf(iso(addDays(ws,i)),n)==="X")k++;return k}
 function coverList(d,who,sec){
   const team=(S.staff.find(p=>p.name===who)||{}).team;
-  return activeStaff().filter(p=>p.name!==who&&stOf(d,p.name)==="O").map(p=>({n:p.name,team:p.team,hue:TEAM_HUE[p.team]??210,k:weekX(d,p.name),same:p.team===team}))
+  return placeable().filter(p=>p.name!==who&&stOf(d,p.name)==="O").map(p=>({n:p.name,team:p.team,hue:TEAM_HUE[p.team]??210,k:weekX(d,p.name),same:p.team===team}))
     .sort((a,b)=>(b.same-a.same)||(a.k-b.k)||a.n.localeCompare(b.n));
 }
 function goDay(d,who){S.view="day";S.cur=fromIso(d);if(who){S.who=who;lsSet("nspca-rota-who",who)}S.sheet=null;go();window.scrollTo(0,0)}
@@ -628,7 +633,7 @@ function header(){
 function glanceHtml(d){
   const x=fromIso(d),inN=inCount(d),offN=offCount(d),short=shortFor(d),anyMin=SECTIONS.some(([s])=>minOf(s)>0);
   let you="";
-  if(S.myName){const c=stOf(d,S.myName),pl=placedIn(d,S.myName);you=c&&c!=="X"?"You: "+LABEL[c]:pl.length?"You: "+pl.join(" + "):c==="X"?"You: in, not placed":""}
+  if(S.myName){const c=stOf(d,S.myName),pl=placedIn(d,S.myName);you=c&&c!=="X"?"You: "+LABEL[c]:pl.length?"You: "+pl.join(" + "):c==="X"?(NOSEC.has((S.staff.find(p=>p.name===S.myName)||{}).team)?"You: in":"You: in, not placed"):""}
   return `<div class="glance noprint"><div class="top"><b>${isToday(x)?"Today, ":""}${DN[x.getDay()]} ${x.getDate()}${isToday(x)?"":" "+MN[x.getMonth()]}</b>${you?`<span class="you">${esc(you)}</span>`:""}</div>
     <div class="tiles" style="grid-template-columns:repeat(${anyMin?3:2},minmax(0,1fr))"><div class="tile"><b>${inN}</b><span>in ${isToday(x)?"today":"that day"}</span></div><div class="tile"><b>${offN}</b><span>off / leave</span></div>${anyMin?`<div class="tile${short.length?" short":""}"><b>${short.length}</b><span>${short.length===1?"section short":"sections short"}</span></div>`:""}</div></div>`;
 }
@@ -724,7 +729,8 @@ function personView(){
   for(let i=1;i<=n;i++){const x=new Date(y,m,i),d=iso(x),c=stOf(d,who);if(c)cnt[c]++;
     const where=c==="X"?placedIn(d,who).join(", "):"";
     cells+=`<div class="c c-${c||"N"}${isToday(x)?" cur":""}" style="--h:${hue}" data-act="openday" data-d="${d}" data-n="${esc(who)}" role="button" tabindex="0" aria-label="Open ${esc(dayLong(x))}"><span class="n">${i}</span>${c?LABEL[c]:"–"}${where?`<small>${esc(where)}</small>`:""}</div>`;}
-  return `<h2>${esc(who)} · ${ML[m]}</h2><p class="sub noprint">Tap a day to see who's on.</p><div class="counts"><span><b>${cnt.X}</b> in</span><span><b>${cnt.O}</b> off</span>${cnt.A?`<span><b>${cnt.A}</b> A/L</span>`:""}${cnt.S?`<span><b>${cnt.S}</b> sick</span>`:""}${cnt.T?`<span><b>${cnt.T}</b> TOIL</span>`:""}</div>
+  const ttl=titleOf(who);
+  return `<div><h2>${esc(who)} · ${ML[m]}</h2>${ttl?`<p class="jobtitle">${esc(ttl)}</p>`:""}</div><p class="sub noprint">Tap a day to see who's on.</p><div class="counts"><span><b>${cnt.X}</b> in</span><span><b>${cnt.O}</b> off</span>${cnt.A?`<span><b>${cnt.A}</b> A/L</span>`:""}${cnt.S?`<span><b>${cnt.S}</b> sick</span>`:""}${cnt.T?`<span><b>${cnt.T}</b> TOIL</span>`:""}</div>
   <div class="cal">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(x=>`<div class="dh">${x}</div>`).join("")}${cells}</div>`;
 }
 
@@ -775,7 +781,7 @@ function meView(){
     const mates=[...new Set(pl.flatMap(s=>inOn(d0,s)).filter(n=>n!==S.myName))];
     h+=`<div class="nextshift" style="--h:${hue}" data-act="openday" data-d="${d0}" data-n="${esc(S.myName)}" role="button" tabindex="0"><span class="h">Next shift</span><b>${esc(when)}${pl.length?" · "+esc(pl.join(" + ")):""}</b><span>${esc(DN[x0.getDay()]+" "+x0.getDate()+" "+MN[x0.getMonth()])}${mates.length?", with "+esc(mates.slice(0,3).join(", ").replace(/, ([^,]*)$/," and $1")):""}.${ups.length>1?" Then "+esc(ups.slice(1).map(dShort).map(z=>z.replace(/ \w+$/,"")).join(", "))+".":""}</span></div>`;
   }
-  h+=`<div class="card me-card"><span class="avatar" style="--h:${hue}">${esc(S.myName[0]||"?")}</span><div><b>${esc(S.myName)}</b><div class="sub">${esc(me.team||"")}</div><div class="sub">${esc(S.session.email)}</div></div></div>`;
+  h+=`<div class="card me-card"><span class="avatar" style="--h:${hue}">${esc(S.myName[0]||"?")}</span><div><b>${esc(S.myName)}</b>${titleOf(S.myName)?`<div class="jobtitle">${esc(titleOf(S.myName))}</div>`:""}<div class="sub">${esc(me.team||"")}</div><div class="sub">${esc(S.session.email)}</div></div></div>`;
   h+=`<div class="card"><span class="h">My next 7 days · tap a day to see who's on</span>`;
   for(let i=0;i<7;i++){const x=addDays(today0(),i),d=iso(x),c=stOf(d,S.myName),pl=placedIn(d,S.myName);
     h+=`<div class="wkrow" data-act="openday" data-d="${d}" data-n="${esc(S.myName)}" role="button" tabindex="0"><span class="d">${i===0?"Today":DN[x.getDay()]+" "+x.getDate()}</span><span class="code c-${c||"N"}" style="--h:${hue}">${c?LABEL[c]:"–"}</span><span class="w">${c==="X"?(pl.length?esc(pl.join(" + ")):"Not placed yet"):""}</span></div>`;}
@@ -827,9 +833,9 @@ function staffView(){
   h+=`<div class="card"><span class="h">Section minimums</span><span class="sub">The fewest people each section needs. Days below it are flagged, and Find cover warns you. Leave at 0 for no minimum.</span>`;
   SECTIONS.forEach(([s,hue],i)=>{h+=`<div class="minrow"><span style="font-weight:700;color:hsl(${hue} 60% var(--ink-l))">${esc(s)}</span><button class="step" data-act="minstep" data-i="${i}" data-n="-1" aria-label="Fewer">−</button><input type="number" min="0" max="20" id="min-${i}" value="${minOf(s)}" inputmode="numeric"><button class="step" data-act="minstep" data-i="${i}" data-n="1" aria-label="More">+</button></div>`});
   h+=`<button class="btn dark" data-act="savemins"${S.busy?" disabled":""}>Save minimums</button></div>`;
-  h+=`<div class="card"><span class="h">Logins</span><span class="sub">Type the email each person signs in with. That links their login to their name, so they get a Me page and can ask for changes as themselves.</span>`;
+  h+=`<div class="card"><span class="h">Logins and job titles</span><span class="sub">The email each person signs in with links their login to their name, so they get a Me page and can ask for changes as themselves. Job titles show on their Person and Me pages.</span>`;
   activeStaff().forEach((p,i)=>{const l=S.logins.find(x=>x.name===p.name);
-    h+=`<div class="loginrow"><span>${esc(p.name)}</span><input type="email" id="lg-${i}" value="${esc(l?l.email:"")}" placeholder="login email" autocomplete="off"><button class="btn small" data-act="savelogin" data-n="${esc(p.name)}" data-i="${i}">Save</button></div>`;});
+    h+=`<div class="loginrow"><span>${esc(p.name)}</span><input type="text" id="tt-${i}" value="${esc(p.title||"")}" placeholder="Job title" autocomplete="off"><input type="email" id="lg-${i}" value="${esc(l?l.email:"")}" placeholder="login email" autocomplete="off"><button class="btn small" data-act="savelogin" data-n="${esc(p.name)}" data-i="${i}">Save</button></div>`;});
   h+=`</div>`;
   return h;
 }
@@ -914,7 +920,7 @@ function overlay(){
     const d=iso(S.cur),[s,hue]=SECTIONS[sh.i],here=plOf(d,s);
     h+=`<div class="top" style="align-items:center"><button class="step" data-act="secday" data-n="-1" aria-label="Previous day">‹</button><div style="text-align:center"><div class="t" style="color:hsl(${hue} 60% var(--ink-l))">${esc(s)}</div><div class="s">${esc(dayLong(S.cur))}</div></div><button class="step" data-act="secday" data-n="1" aria-label="Next day">›</button><button class="btn dark" data-act="close">Done</button></div>
     <span class="h">On this section</span><div class="chips">${here.map(n=>{const c=stOf(d,n),off=c&&c!=="X";return `<button class="oncur${off?" warn":""}" data-act="secrm" data-n="${esc(n)}" aria-label="Take ${esc(n)} off">${esc(n)}${off?" · "+LABEL[c]:""}<i>✕</i></button>`}).join("")||`<span class="nobody">Nobody on yet. Add someone below.</span>`}</div>`;
-    const cand=activeStaff().filter(p=>!here.includes(p.name)&&(stOf(d,p.name)===null||stOf(d,p.name)==="X")).map(p=>{
+    const cand=placeable().filter(p=>!here.includes(p.name)&&(stOf(d,p.name)===null||stOf(d,p.name)==="X")).map(p=>{
       const c=stOf(d,p.name),els=placedIn(d,p.name).filter(x=>x!==s);
       const rank=els.length?2:(c==="X"?0:1);
       return {n:p.name,rank,where:els.length?"On "+els.join(", "):(c==="X"?"Not placed yet":"Not on the month yet · adds as In")};
@@ -1186,11 +1192,14 @@ document.addEventListener("click",async e=>{
       else{S.toast=n?"Sent to "+n+(n===1?" phone.":" phones."):"Sent, but nobody has notifications turned on yet.";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},6000)}
       render();break}
     case "savelogin":{const n=el.dataset.n,inp=document.getElementById("lg-"+el.dataset.i),email=(inp?inp.value:"").trim().toLowerCase();
+      const ti=document.getElementById("tt-"+el.dataset.i),title=ti?ti.value.trim():null,pp=S.staff.find(x=>x.name===n);
+      if(ti&&pp&&(pp.title||"")!==title){try{await api("rota_staff?name=eq."+encodeURIComponent(n),{method:"PATCH",body:{title:title||null},prefer:"return=minimal"});pp.title=title}
+        catch(err){S.note="Couldn't save the job title ("+err.message+"). Run rota-titles.sql first.";S.noteErr=true;render();break}}
       if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){S.note="That doesn't look like an email address.";S.noteErr=true;render();break}
       try{await api("rota_logins?name=eq."+encodeURIComponent(n),{method:"DELETE",prefer:"return=minimal"});
         if(email) await api("rota_logins?on_conflict=email",{method:"POST",body:[{email,name:n}],prefer:"resolution=merge-duplicates,return=minimal"});
         S.logins=S.logins.filter(x=>x.name!==n&&x.email!==email);if(email)S.logins.push({email,name:n});
-        S.note=email?n+" is linked to "+email+".":n+"'s login link was removed.";S.noteErr=false;}
+        S.note=n+" saved"+(email?" · login "+email:" · no login linked")+".";S.noteErr=false;}
       catch(err){S.note="Couldn't save the login ("+err.message+").";S.noteErr=true}
       render();break}
     case "hl":S.who=S.who===el.dataset.n?"":el.dataset.n;lsSet("nspca-rota-who",S.who);render();break;
