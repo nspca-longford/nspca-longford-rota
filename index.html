@@ -1196,7 +1196,7 @@ document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-act]");if(!el)return;
   const a=el.dataset.act;
   if(a==="scrim"){if(e.target===el&&S.sheet&&!S.busy){S.sheet=null;render()}return}
-  if(!["rmstaff","mstate","reqcancel"].includes(a)) S.confirmRm="";
+  if(a!=="rmstaff") S.confirmRm="";
   if(["view","prevm","nextm","done","signout","edit"].includes(a)) S.sel=[];
   switch(a){
     case "view":S.view=el.dataset.v;S.decl=null;if(["me","requests"].includes(S.view)&&S.session)loadMe().then(()=>go());if(S.view==="person"&&!S.who){const f=activeStaff()[0];if(f)S.who=f.name}go();break;
