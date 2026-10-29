@@ -47,6 +47,8 @@ button{cursor:pointer}
 button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-top:16px}
 .wrap.wide{max-width:1800px}
+.wrap.mid{max-width:1100px}
+@media (min-width:900px){.mid .wk{font-size:.95rem}.mid .wk th,.mid .wk td{padding:9px 10px}}
 .toolbar{display:flex;flex-direction:column;gap:14px}
 @media (min-width:900px){
   .wide .toolbar{flex-direction:row;align-items:center;gap:16px}
@@ -103,6 +105,30 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 .printonly{display:none}
 .testbar{background:#e8890c;color:#fff;font-weight:800;font-size:12px;text-align:center;padding:6px 10px;border-radius:10px}
 @media (max-width:820px){.testbar{border-radius:0;margin:-16px calc(-1 * max(16px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-left,0px)))}.testbar+.brand{margin-top:0}}
+/* editing: floating capsule (design C) */
+.brand .chip.live{display:inline-flex;align-items:center;gap:7px}
+.brand .chip.live i{width:8px;height:8px;border-radius:99px;background:var(--lichen);box-shadow:0 0 0 3px rgb(198 231 108/.25);flex:none}
+.ecap{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + var(--bn) + env(safe-area-inset-bottom,0px));z-index:25;display:flex;align-items:center;gap:6px;background:rgb(40 41 50/.93);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;border-radius:99px;padding:6px 6px 6px 16px;box-shadow:0 10px 30px rgb(0 0 0/.28),inset 0 0 0 1px rgb(255 255 255/.06);font-weight:700;font-size:14px;white-space:nowrap;max-width:calc(100vw - 24px)}
+@media (max-width:899px){.ecap{bottom:calc(14px + var(--bn))}}
+.ecap .dot{width:9px;height:9px;border-radius:99px;background:var(--lichen);box-shadow:0 0 0 4px rgb(198 231 108/.22);margin-right:4px;flex:none;animation:ecpulse 1.8s infinite}
+@keyframes ecpulse{50%{box-shadow:0 0 0 7px rgb(198 231 108/.04)}}
+@media (prefers-reduced-motion:reduce){.ecap .dot{animation:none}}
+.ecap .t{margin-right:8px;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:420px){.ecap .rest{display:none}}
+@media (min-width:900px){.wide .toolbar .tabs{flex:0 0 auto!important;flex-wrap:nowrap}.wide .toolbar .navline{flex:1 1 auto;max-width:none;min-width:0}}.ecap .n{color:var(--lichen)}
+.ecap button{border:0;border-radius:99px;min-height:40px;padding:0 16px;font-weight:800;font-size:14px;flex:none;cursor:pointer}
+.ecap button:disabled{opacity:.6}
+.ecap .g{background:rgb(255 255 255/.1);color:#fff}.ecap .g:hover{background:rgb(255 255 255/.18)}
+.ecap .p{background:var(--lichen);color:#282932}.ecap .p:hover{filter:brightness(1.05)}
+.toast.up{bottom:calc(84px + var(--bn))!important}
+.tabs .tsep{width:1px;align-self:stretch;background:#c5cad3;margin:6px 3px;flex:none!important;padding:0}
+@media (max-width:899px){
+  .toolbar .tabs.hasx{background:var(--line)!important;padding:4px!important;gap:4px!important}
+  .toolbar .tabs.hasx button{border:0!important;background:transparent!important;border-radius:7px!important;min-height:40px!important;flex:1 0 auto!important}
+  .toolbar .tabs.hasx button[aria-selected="true"]{background:var(--surface)!important;color:var(--fg)!important;box-shadow:0 1px 2px rgb(0 0 0/.12)}
+  .tabs .tsep{display:none}}
+@media (prefers-color-scheme: dark){.tabs .tsep{background:#3a4250}}
+
 .hist .hf{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.hist .hf .h{flex:1;min-width:100%}
 .hist .hf select{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;min-height:38px;padding:0 10px;font-weight:700;flex:1;min-width:0}
 .hday{font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:12px}
@@ -463,7 +489,8 @@ const CONFIG = {
 };
 /* ======================================================================= */
 
-const SECTIONS = [["Kennels",214],["Quiet",190],["Cattery / Cat ISO",268],["Small Mammals",36],["Isolation",354],["Stables",145],["Reception",325],["Rehoming",168],["Super / Vet / Admin",232]];
+const SECTIONS = [["Kennels",214],["Quiet",190],["Cattery",262],["Cat ISO",292],["Isolation",354],["Stables",145],["Small Mammals",36],["Reception",325],["Rehoming",168],["Super / Vet / Admin",228],["Grounds & Maintenance",30]];
+const AUTOSEC="Grounds & Maintenance"; // Maintenance staff show here by themselves on days they're in
 const TEAMS = [["Dogs",214],["Cats & small animals",272],["Stables",145],["Reception & office",36],["Maintenance",30]];
 const STONE=30; // Maintenance: a greyed stone, not a bright colour
 const hv=h=>h===STONE?`--h:${h};--hs:16%;--ts:14%`:`--h:${h}`;
@@ -617,7 +644,11 @@ const placeable=()=>activeStaff().filter(p=>!NOSEC.has(p.team));
 const employedOn=(p,d)=>(!p.start_date||d>=p.start_date)&&(!p.end_date||d<=p.end_date);
 const staffOn=d=>activeStaff().filter(p=>employedOn(p,d));
 const hueOf=n=>{const s=S.staff.find(x=>x.name===n);return TEAM_HUE[s&&s.team]??210};
-const placedIn=(day,n)=>SECTIONS.filter(([s])=>plOf(day,s).includes(n)).map(x=>x[0]);
+// what a section shows: the people placed on it, plus (for Grounds & Maintenance) Maintenance staff who are in that day
+const shownOn=(d,s)=>{const pl=plOf(d,s);if(s!==AUTOSEC)return pl;
+  const auto=S.staff.filter(p=>p.active&&NOSEC.has(p.team)&&(typeof employedOn!=="function"||employedOn(p,d))&&stOf(d,p.name)==="X").map(p=>p.name);
+  return [...new Set([...pl,...auto])]};
+const placedIn=(day,n)=>SECTIONS.filter(([s])=>shownOn(day,s).includes(n)).map(x=>x[0]);
 function issuesFor(day){
   const out=[];
   for(const [s] of SECTIONS) for(const n of plOf(day,s)){const c=stOf(day,n);if(c&&c!=="X")out.push({kind:"off",n,s,c})}
@@ -712,14 +743,14 @@ const LOGO_LG='<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 
 function header(){
   let h="";
-  if(S.editing) h+=`<div class="editbar noprint"><span class="pill">Editing</span><span class="who">${esc(S.session.email)}</span><button class="btn ghost-l" data-act="done">Done</button></div>`;
+
   const per=(S.view==="month"||S.view==="person")?ML[S.my.m]+" "+S.my.y:S.view==="staff"?"Staff list":S.view==="me"?"My profile":S.view==="requests"?"Change requests":S.view==="history"?"Change history":weekLabel(monday(S.cur));
   let upd="";
   if(S.pub&&S.pub.at){const t=new Date(S.pub.at);upd=`Updated ${isToday(t)?"today":DN[t.getDay()]+" "+t.getDate()+" "+MN[t.getMonth()]} at ${pad(t.getHours())}:${pad(t.getMinutes())}`}
   const me=S.session?(S.myName||S.session.email.split("@")[0]):"";
   h=`<div class="testbar noprint">TEST VERSION · only you have this link · changes are saved to the real rota</div><header class="brand noprint"><div class="bl"><h1 class="bt">${LOGO_SM}<span class="sr">NSPCA Longford Rota</span></h1><div class="bs">Staff rota${upd?" · "+esc(upd.charAt(0).toLowerCase()+upd.slice(1)):""}</div></div>`
    +(S.isAdmin&&!S.editing?`<button class="chip" data-act="edit">Edit rota</button>`:"")
-   +(S.session?`<button class="chip" data-act="view" data-v="me" aria-label="My profile">${esc(me)}</button>`:`<button class="chip" data-act="signin">Sign in</button>`)
+   +(S.session?`<button class="chip${S.editing?" live":""}" data-act="view" data-v="me" aria-label="My profile${S.editing?", editing":""}">${S.editing?"<i></i>":""}${esc(me)}</button>`:`<button class="chip" data-act="signin">Sign in</button>`)
    +`</header>`+h;
   h+=`<div class="printhead"><h1>NSPCA Longford Rota</h1><div class="sub">${esc(per)}</div>${upd?`<div class="updated">${esc(upd)}</div>`:""}</div>`;
   if(!configured()) h+=`<div class="note err"><span>This rota isn't connected to the database yet.</span></div>`;
@@ -731,7 +762,7 @@ function header(){
   if(S.editing) tabs.push(["staff","Staff"]);
   let tb="";
   const MAIN=["day","week","month","person","me"],extra=tabs.some(([v])=>!MAIN.includes(v));
-  tb+=`<div class="tabs noprint${extra?" hasx":""}" role="tablist">${tabs.map(([v,l])=>`<button role="tab" data-act="view" data-v="${v}"${MAIN.includes(v)?' data-main="1"':""} aria-selected="${S.view===v}">${l}</button>`).join("")}</div>`;
+  tb+=`<div class="tabs noprint${extra?" hasx":""}" role="tablist">${tabs.map(([v,l],i)=>`${i&&!MAIN.includes(v)&&MAIN.includes(tabs[i-1][0])?'<span class="tsep" aria-hidden="true"></span>':""}<button role="tab" data-act="view" data-v="${v}"${MAIN.includes(v)?' data-main="1"':""} aria-selected="${S.view===v}">${l}</button>`).join("")}</div>`;
   let nav="";
   if(S.view==="day"||S.view==="week"){
     const ws=monday(S.cur),thisWeek=iso(ws)===iso(monday(today0()));
@@ -786,7 +817,7 @@ function dayView(){
   else{
     h+=`<div class="list${S.who?" dim":""}">`;
     SECTIONS.forEach(([s,hue],i)=>{
-      const names=plOf(d,s),has=S.who&&names.includes(S.who),tag=S.editing?"button":"div";
+      const names=shownOn(d,s),has=S.who&&names.includes(S.who),tag=S.editing?"button":"div";
       const need=minOf(s),have=inOn(d,s).length,isShort=need>0&&have<need&&SECTIONS.some(([z])=>plOf(d,z).length);
       h+=`<${tag} class="dept${has?" has-me":""}${S.editing&&placeChanged(d,s)?" changed":""}${isShort?" short":""}" style="${hv(hue)}"${S.editing?` data-act="sec" data-i="${i}" aria-label="Change ${esc(s)}"`:""}><span class="lab">${esc(s)}</span><span class="names">`;
       h+=names.map(n=>{const c=stOf(d,n),off=c&&c!=="X";
@@ -807,7 +838,7 @@ function weekView(){
   const ws=monday(S.cur);const days=[...Array(7)].map((_,i)=>addDays(ws,i));
   let h=`<div class="wkwrap"><div class="gridwrap" id="wgrid"><table class="wk"><thead><tr><th></th>${days.map(x=>`<th class="${isToday(x)?"cur":""}${bhOf(iso(x))?" bh":""}"${bhOf(iso(x))?` title="${esc(bhOf(iso(x)))}"`:""}>${DN[x.getDay()]} ${x.getDate()}${bhOf(iso(x))?` <span class="bhchip">BH</span>`:""}</th>`).join("")}</tr></thead><tbody>`;
   for(const [s,hue] of SECTIONS){
-    h+=`<tr><th style="${hv(hue)}">${esc(s)}</th>${days.map(x=>`<td style="${hv(hue)}">${plOf(iso(x),s).map(n=>`<div>${n===S.who?`<span class="me">${esc(n)}</span>`:esc(n)}</div>`).join("")}</td>`).join("")}</tr>`;
+    h+=`<tr><th style="${hv(hue)}">${esc(s)}</th>${days.map(x=>`<td style="${hv(hue)}">${shownOn(iso(x),s).map(n=>`<div>${n===S.who?`<span class="me">${esc(n)}</span>`:esc(n)}</div>`).join("")}</td>`).join("")}</tr>`;
   }
   h+=`</tbody></table></div></div><div class="noprint ctrl"><button class="btn" data-act="print">Print this week</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="week">Notify staff</button>`:""}</div>`;
   return h;
@@ -1073,12 +1104,13 @@ function overlay(){
     <div class="opts six">${CODES.map(k=>`<button class="c-${k}" style="${hv(hue)}" data-act="setsel" data-c="${k}">${BTN[k]}</button>`).join("")}<button class="c-N" data-act="setsel" data-c="">Clear</button></div>
     ${S.sel.length===1?`<div class="hint">Tap another day in ${esc(ppl[0])}'s row to select every day between.</div>`:""}</div></div>`;
   }
-  if(S.editing&&pendCount()&&!S.sheet){
-    const n=pendCount();
-    const dr=allDraft();
-    h+=`<div class="bar"><div class="in"><span>${n===1?"1 change":n+" changes"} not ${dr?"saved":"published"}</span><button class="btn" data-act="undo"${S.busy?" disabled":""}>Undo</button><button class="btn dark" data-act="review"${S.busy?" disabled":""}>${S.busy?(dr?"Saving…":"Publishing…"):(dr?"Save draft":"Publish")}</button></div></div>`;
-  }else if(S.toast&&!S.sheet){
-    h+=`<div class="toast" role="status"><span>${esc(S.toast)}</span><button data-act="cleartoast" aria-label="Dismiss">✕</button></div>`;
+  if(S.editing&&!S.sel.length&&!S.sheet){
+    const n=pendCount(),dr=allDraft();
+    h+=n?`<div class="ecap noprint" role="region" aria-label="Unpublished changes"><span class="dot"></span><span class="t"><span class="n">${n===1?"1 change":n+" changes"}</span><span class="rest"> not ${dr?"saved":"published"}</span></span><button class="g" data-act="undo"${S.busy?" disabled":""}>Undo</button><button class="p" data-act="review"${S.busy?" disabled":""}>${S.busy?(dr?"Saving…":"Publishing…"):(dr?"Save draft":"Publish")}</button></div>`
+      :`<div class="ecap noprint" role="region" aria-label="Editing"><span class="dot"></span><span class="t">Editing the rota</span><button class="p" data-act="done">Done</button></div>`;
+  }
+  if(S.toast&&!S.sheet&&!(S.editing&&pendCount())){
+    h+=`<div class="toast${S.editing?" up":""}" role="status"><span>${esc(S.toast)}</span><button data-act="cleartoast" aria-label="Dismiss">✕</button></div>`;
   }
   if(!S.sheet) return h;
   const sh=S.sheet;
@@ -1203,7 +1235,7 @@ function render(){
     return ""};
   const banner=S.view==="day"?bannerFor([iso(S.cur)]):S.view==="week"?bannerFor([...Array(7)].map((_,i)=>iso(addDays(monday(S.cur),i)))):"";
   if(S.view==="day")body=dayView();else if(S.view==="week")body=weekView();else if(S.view==="month")body=monthView();else if(S.view==="person")body=personView();else if(S.view==="me")body=meView();else if(S.view==="requests")body=requestsView();else if(S.view==="history")body=historyView();else body=staffView();
-  const app=document.getElementById("app");app.classList.toggle("wide",S.view==="month");
+  const app=document.getElementById("app");app.classList.toggle("wide",S.view==="month");app.classList.toggle("mid",S.view==="week");
   if(!S.isAdmin&&banner.includes("notready")&&(S.view==="day"||S.view==="week"))body="";
   if(!S.isAdmin&&S.view==="person"&&mstate(mkey(S.my.y,S.my.m))==="draft")body=notReady(ML[S.my.m]);
   app.innerHTML=header()+banner+body+footer();
@@ -1213,7 +1245,7 @@ function render(){
   document.getElementById("bnav").innerHTML=bottomNav();
   if(S.badgeKey!==S.reqs.length+"|"+S.isAdmin+"|"+S.reqs.filter(r=>r.status==="waiting").length){S.badgeKey=S.reqs.length+"|"+S.isAdmin+"|"+S.reqs.filter(r=>r.status==="waiting").length;updateBadge()}
   const ss=document.getElementById("secstrip");if(ss){const on=ss.querySelector('[aria-selected="true"]');if(on)ss.scrollLeft=Math.max(0,on.offsetLeft-ss.clientWidth/2+on.offsetWidth/2)}
-  document.body.style.paddingBottom=S.editing&&S.sel.length?"calc(env(safe-area-inset-bottom,0px) + var(--bn) + 210px)":"";
+  document.body.style.paddingBottom=S.editing&&S.sel.length?"calc(env(safe-area-inset-bottom,0px) + var(--bn) + 210px)":S.editing?"calc(env(safe-area-inset-bottom,0px) + var(--bn) + 180px)":"";
   const wg=document.getElementById("wgrid");
   if(wg){const fade=()=>wg.parentNode.classList.toggle("more",wg.scrollLeft+wg.clientWidth<wg.scrollWidth-4);wg.onscroll=fade;
     const cur=wg.querySelector("thead th.cur"),first=wg.querySelector("thead th");
