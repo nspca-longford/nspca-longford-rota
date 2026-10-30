@@ -1148,7 +1148,10 @@ function overlay(){
     h+=`</div><div class="revnote">${dr?"This is a draft month, so <b>nobody is notified</b> and staff can't see it yet."
       :who.length?`<b>Notified:</b> ${who.slice(0,8).map(esc).join(", ")}${who.length>8?" and "+(who.length-8)+" more":""} get their own message. Everyone else with notifications on gets “Rota updated”.`
       :"Nothing coming up has changed, so <b>nobody is notified</b>."}</div>
-      <button class="btn dark" data-act="publish"${S.busy?" disabled":""}>${dr?"Save draft":"Publish"}</button>`;
+      ${dr?`<button class="btn dark" data-act="publish"${S.busy?" disabled":""}>Save draft</button>`
+        :`<button class="btn dark" data-act="publish"${S.busy?" disabled":""}>Publish and notify</button>
+          <button class="btn" data-act="publish" data-quiet="1"${S.busy?" disabled":""}>Publish quietly</button>
+          <span class="sub" style="text-align:center">Building a new week? Publish quietly as you go, then tap <b>Notify staff</b> on the Week view once it's done.</span>`}`;
   }else if(sh.type==="pattern"){
     const k=mkey(S.my.y,S.my.m),nm=ML[S.my.m];
     h+=`<div class="top"><div><div class="t">Fill ${esc(nm)} from a pattern</div><div class="s">Each day copies X or OFF from the same weekday a few weeks earlier.</div></div><button class="btn" data-act="close">Cancel</button></div>
@@ -1390,8 +1393,8 @@ async function publish(opt={}){
     for(const d of new Set([...ups,...dels,...pls].map(x=>x.day))) SEEN.days[d]=dayFp(d); seenSave();
     S.pend={status:new Map(),place:new Map()};savePend();cacheSave();
     if(!draftOnly) S.pub=(p&&p[0])||{at:new Date().toISOString(),by_email:S.session.email};
-    ok=true;S.toast=opt.toast||(draftOnly?"Draft saved. Only admins can see it.":"Published. Staff see it the next time they open the rota.");S.note="";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},7000);
-    if(!draftOnly) sendNotifications(people).then(n=>{if(n>0&&S.toast){S.toast=(opt.toast||"Published.").replace(/\.$/,"")+". "+n+(n===1?" phone":" phones")+" notified.";render()}});
+    ok=true;S.toast=opt.toast||(draftOnly?"Draft saved. Only admins can see it.":opt.quiet?"Published quietly. Nobody was notified.":"Published. Staff see it the next time they open the rota.");S.note="";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},7000);
+    if(!draftOnly&&!opt.quiet) sendNotifications(people).then(n=>{if(n>0&&S.toast){S.toast=(opt.toast||"Published.").replace(/\.$/,"")+". "+n+(n===1?" phone":" phones")+" notified.";render()}});
   }catch(e){S.note="Couldn't publish ("+e.message+"). Your changes are still here, so try again.";S.noteErr=true}
   S.busy=false;render();
   return ok;
@@ -1478,7 +1481,7 @@ document.addEventListener("click",async e=>{
     case "edit":S.editing=true;S.toast="";S.note="";render();break;
     case "done":if(pendCount()){S.note="Publish or undo your changes first.";S.noteErr=true}else{S.editing=false;if(S.view==="staff")S.view="day"}render();break;
     case "undo":S.pend={status:new Map(),place:new Map()};savePend();S.note="Changes undone.";S.noteErr=false;render();break;
-    case "publish":if(S.sheet&&S.sheet.type==="review")S.sheet=null;publish();break;
+    case "publish":if(S.sheet&&S.sheet.type==="review")S.sheet=null;publish({quiet:!!el.dataset.quiet});break;
     case "sec":if(isLockedDay(iso(S.cur))){lockNote(iso(S.cur));render();break}S.sheet={type:"sec",i:+el.dataset.i};render();break;
     case "secday":S.cur=addDays(S.cur,+el.dataset.n);go();break;
     case "secgo":S.sheet={type:"sec",i:+el.dataset.i};render();break;
