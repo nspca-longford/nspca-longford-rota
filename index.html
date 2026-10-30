@@ -103,6 +103,14 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 .hlpill::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-70%) rotate(45deg);pointer-events:none}
 .hlpill select option{color:var(--fg);background:var(--surface)}
 .printonly{display:none}
+/* editing on the Week view: tap a square to change that section on that day */
+.wk td.wedit{cursor:pointer;position:relative}
+.wk td.wedit:hover{box-shadow:inset 0 0 0 2px hsl(var(--h) var(--hs) var(--solid-l))}
+.wk td.wedit.chg{box-shadow:inset 0 0 0 2px var(--fg)}
+.wk td .wadd{color:var(--muted);font-size:.8rem;font-weight:700;opacity:.7}
+.wk td.wedit:hover .wadd{opacity:1}
+.wk td .woff{color:var(--warn-fg);font-weight:700}
+
 /* success message: small floating pill to match the editing capsule */
 body .toast{left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);margin:0;background:rgb(40 41 50/.93);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;border-radius:24px;padding:6px 6px 6px 12px;gap:10px;font-size:14px;font-weight:700;box-shadow:0 10px 30px rgb(0 0 0/.28),inset 0 0 0 1px rgb(255 255 255/.06);animation:toastin .25s ease-out}
 body .toast::before{content:"";flex:none;width:22px;height:22px;border-radius:99px;background:var(--lichen) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23282932' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat}
@@ -844,9 +852,13 @@ function dayView(){
 function weekView(){
   const ws=monday(S.cur);const days=[...Array(7)].map((_,i)=>addDays(ws,i));
   let h=`<div class="wkwrap"><div class="gridwrap" id="wgrid"><table class="wk"><thead><tr><th></th>${days.map(x=>`<th class="${isToday(x)?"cur":""}${bhOf(iso(x))?" bh":""}"${bhOf(iso(x))?` title="${esc(bhOf(iso(x)))}"`:""}>${DN[x.getDay()]} ${x.getDate()}${bhOf(iso(x))?` <span class="bhchip">BH</span>`:""}</th>`).join("")}</tr></thead><tbody>`;
-  for(const [s,hue] of SECTIONS){
-    h+=`<tr><th style="${hv(hue)}">${esc(s)}</th>${days.map(x=>`<td style="${hv(hue)}">${shownOn(iso(x),s).map(n=>`<div>${n===S.who?`<span class="me">${esc(n)}</span>`:esc(n)}</div>`).join("")}</td>`).join("")}</tr>`;
-  }
+  SECTIONS.forEach(([s,hue],i)=>{
+    h+=`<tr><th style="${hv(hue)}">${esc(s)}</th>${days.map(x=>{const d=iso(x),names=shownOn(d,s);
+      const inner=names.map(n=>{const c=stOf(d,n),off=S.editing&&c&&c!=="X";return `<div${off?' class="woff"':""}>${n===S.who?`<span class="me">${esc(n)}</span>`:esc(n)}${off?" · "+esc(LABEL[c]):""}</div>`}).join("");
+      return S.editing&&!isLockedDay(d)
+        ?`<td style="${hv(hue)}" class="wedit${placeChanged(d,s)?" chg":""}" data-act="wkcell" data-d="${d}" data-i="${i}" role="button" tabindex="0" aria-label="Change ${esc(s)} on ${esc(dayLong(x))}">${inner||'<span class="wadd">+ Add</span>'}</td>`
+        :`<td style="${hv(hue)}">${inner}</td>`}).join("")}</tr>`;
+  });
   h+=`</tbody></table></div></div><div class="noprint ctrl"><button class="btn" data-act="print">Print this week</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="week">Notify staff</button>`:""}</div>`;
   return h;
 }
@@ -1566,6 +1578,7 @@ document.addEventListener("click",async e=>{
       else if(code==="X"&&was!=="X"&&!pl.length){S.note=n+" is in on "+dayLong(x)+". Place them on the Day tab."}
       render();break}
     case "copyweek":copyWeek();break;
+    case "wkcell":S.cur=fromIso(el.dataset.d);S.sheet={type:"sec",i:+el.dataset.i};render();break;
     case "pwopen":S.sheet={type:"pw"};S.pwErr="";render();setTimeout(()=>{const a=document.getElementById("pw-a");if(a)a.focus()},60);break;
     case "histload":loadHistory();break;
     case "histmore":S.hist.n+=150;render();break;
