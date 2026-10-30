@@ -105,6 +105,15 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 .printonly{display:none}
 .testbar{background:#e8890c;color:#fff;font-weight:800;font-size:12px;text-align:center;padding:6px 10px;border-radius:10px}
 @media (max-width:820px){.testbar{border-radius:0;margin:-16px calc(-1 * max(16px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-left,0px)))}.testbar+.brand{margin-top:0}}
+/* success message: small floating pill to match the editing capsule */
+body .toast{left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);margin:0;background:rgb(40 41 50/.93);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;border-radius:24px;padding:6px 6px 6px 12px;gap:10px;font-size:14px;font-weight:700;box-shadow:0 10px 30px rgb(0 0 0/.28),inset 0 0 0 1px rgb(255 255 255/.06);animation:toastin .25s ease-out}
+body .toast::before{content:"";flex:none;width:22px;height:22px;border-radius:99px;background:var(--lichen) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23282932' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat}
+body .toast span{flex:0 1 auto;line-height:1.3}
+body .toast button{width:32px;height:32px;min-height:32px;border-radius:99px;background:rgb(255 255 255/.1);color:#fff;font-size:13px;padding:0;flex:none}
+body .toast button:hover{background:rgb(255 255 255/.18)}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){body .toast{animation:none}}
+
 /* editing: floating capsule (design C) */
 .brand .chip.live{display:inline-flex;align-items:center;gap:7px}
 .brand .chip.live i{width:8px;height:8px;border-radius:99px;background:var(--lichen);box-shadow:0 0 0 3px rgb(198 231 108/.25);flex:none}
@@ -575,7 +584,7 @@ function clearData(){S.status=new Map();S.place=new Map();S.loaded=new Set()}
 async function loadBase(){
   const [staff,pub]=await Promise.all([
     api("rota_staff?select=name,team,sort,active,title,start_date,end_date&order=sort.asc,name.asc").catch(()=>api("rota_staff?select=name,team,sort,active,title&order=sort.asc,name.asc")).catch(()=>api("rota_staff?select=name,team,sort,active&order=sort.asc,name.asc")),
-    api("rota_published?select=at,by_email&order=at.desc&limit=1")]);
+    api("rota_published?select=at&order=at.desc&limit=1")]);
   S.staff=staff||[]; S.pub=(pub&&pub[0])||null;
   try{const ms=await api("rota_months?select=month,state");S.months=Object.fromEntries((ms||[]).map(r=>[r.month,r.state]))}catch(e){S.months=S.months||{}}
   try{const r=await api("rota_settings?select=value&key=eq.minimums");S.mins=(r&&r[0]&&r[0].value)||{}}catch(e){S.mins=S.mins||{}}
@@ -595,7 +604,7 @@ async function ensureRange(a,b){
   while(d<=b){months.push([d.getFullYear(),d.getMonth()]);d=new Date(d.getFullYear(),d.getMonth()+1,1)}
   const need=months.filter(([y,m])=>!S.loaded.has(mkey(y,m)));
   if(!need.length) return;
-  const tbl="rota_status";
+  const tbl=S.session?"rota_status":"rota_public_status"; // reasons (A/L, SICK…) only for signed-in staff
   await Promise.all(need.map(async([y,m])=>{
     const f=iso(new Date(y,m,1)),l=iso(new Date(y,m+1,0)),pre=mkey(y,m)+"-";
     const [st,pl]=await Promise.all([
@@ -748,7 +757,7 @@ function header(){
   let upd="";
   if(S.pub&&S.pub.at){const t=new Date(S.pub.at);upd=`Updated ${isToday(t)?"today":DN[t.getDay()]+" "+t.getDate()+" "+MN[t.getMonth()]} at ${pad(t.getHours())}:${pad(t.getMinutes())}`}
   const me=S.session?(S.myName||S.session.email.split("@")[0]):"";
-  h=`<div class="testbar noprint">TEST VERSION · only you have this link · changes are saved to the real rota</div><header class="brand noprint"><div class="bl"><h1 class="bt">${LOGO_SM}<span class="sr">NSPCA Longford Rota</span></h1><div class="bs">Staff rota${upd?" · "+esc(upd.charAt(0).toLowerCase()+upd.slice(1)):""}</div></div>`
+  h=`<div class="testbar noprint">TEST PAGE · changes here are saved to the real rota</div><header class="brand noprint"><div class="bl"><h1 class="bt">${LOGO_SM}<span class="sr">NSPCA Longford Rota</span></h1><div class="bs">Staff rota${upd?" · "+esc(upd.charAt(0).toLowerCase()+upd.slice(1)):""}</div></div>`
    +(S.isAdmin&&!S.editing?`<button class="chip" data-act="edit">Edit rota</button>`:"")
    +(S.session?`<button class="chip${S.editing?" live":""}" data-act="view" data-v="me" aria-label="My profile${S.editing?", editing":""}">${S.editing?"<i></i>":""}${esc(me)}</button>`:`<button class="chip" data-act="signin">Sign in</button>`)
    +`</header>`+h;
@@ -886,6 +895,7 @@ function monthView(){
     const nm=shortDays.slice(0,4).map(([x])=>DN[x.getDay()]+" "+x.getDate()).join(", ")+(shortDays.length>4?" and "+(shortDays.length-4)+" more":"");
     h+=`<div class="issues"><span class="h">Short on ${esc(nm)}</span>${shortDays.slice(0,4).map(([x,sh])=>`<div class="issue"><span>${DN[x.getDay()]} ${x.getDate()}: ${esc(sh.map(z=>z.s+" has "+z.have+" (needs "+z.need+")").join(", "))}</span><button class="btn small" data-act="openday" data-d="${iso(x)}">Open</button></div>`).join("")}</div>`;
   }
+  if(!S.session) h+=`<p class="sub noprint" style="margin:0">Sign in to see A/L, SICK, TOIL and B. Without signing in, days off show as OFF.</p>`;
   h+=`<div class="legend">${TEAMS.map(([t,hh])=>`<span><i style="background:${hcol(hh)}"></i>${esc(t)}</span>`).join("")}<span><b>X</b>&nbsp;= in</span><span><i class="c-A"></i>A/L</span><span><i class="c-S"></i>SICK</span><span><i class="c-T"></i>TOIL</span><span><i class="c-B"></i>B = Bereavement</span><span><i class="c-O"></i>OFF</span></div>`;
   if(S.editing) h+=`<p class="sub noprint">Tap squares to select them, then choose In, Off, A/L, Sick or TOIL. To select a run of days, tap the first day then the last day in the same row. Marking someone off takes them off that day's sections too.</p>`;
   h+=`<div class="noprint ctrl"><button class="btn" data-act="print">Print this month</button>${S.isAdmin?`<button class="btn dark" data-act="notify" data-k="month">Notify staff</button>`:""}</div>`;
@@ -1041,6 +1051,7 @@ function meView(){
   h+=`<div class="card"><div class="reqrow"><span class="h">My requests</span><button class="btn dark small" data-act="ask">Ask for a change</button></div>`;
   h+=mine.length?mine.slice(0,8).map(r=>`<div class="reqrow"><span>${esc(reqWhat(r))}<br><small class="sub">${r.status==="waiting"?"Sent "+whenText(r.created_at):r.status==="approved"?"Approved by "+esc(r.answered_by||"admin"):"Declined by "+esc(r.answered_by||"admin")+(r.reason?": “"+esc(r.reason)+"”":"")}</small></span><span class="pill-s ${r.status}">${r.status==="waiting"?"Waiting":r.status==="approved"?"Approved":"Declined"}</span>${r.status==="waiting"?`<button class="btn small" data-act="reqcancel" data-id="${r.id}">${S.confirmRm==="req"+r.id?"Tap again":"Cancel"}</button>`:""}</div>`).join(""):`<span class="sub">No requests yet.</span>`;
   h+=bambooHtml()+`</div>`;
+  h+=`<div class="card"><span class="h">Password</span><span class="sub">Signed in as ${esc(S.session.email)}</span><button class="btn" data-act="pwopen">Change my password</button></div>`;
   const pn=lsGet("nspca-rotatest-push"),on=pn===S.myName,ps=pushState();
   h+=`<div class="card"><div class="reqrow"><span><b>Notifications</b><br><small class="sub">${ps==="ios-browser"?"On an iPhone, add the rota to your home screen and open it from there first.":ps==="unsupported"?"This browser can't show notifications.":on?"On for this phone. You'll hear when your days change or a request is answered.":"Off on this phone."}</small></span>${ps==="ok"?`<button class="toggle" data-act="${on?"pushoff":"pushme"}" aria-pressed="${on}" aria-label="Notifications on this phone"${S.busy?" disabled":""}><i></i></button>`:""}</div>${S.pushErr?`<span class="err" style="color:#c0281b;font-weight:700">${esc(S.pushErr)}</span>`:""}</div>`;
   h+=`<button class="btn" data-act="signout">Sign out</button>`;
@@ -1163,14 +1174,22 @@ function overlay(){
     for(let i=0;i<7;i++){const x=addDays(ws,i),d=iso(x),c=stOf(d,n),pl=placedIn(d,n);
       h+=`<div class="qrow${d===iso(S.cur)?" cur":""}" data-act="openday" data-d="${d}" data-n="${esc(n)}" role="button" tabindex="0"><span>${DN[x.getDay()]} ${x.getDate()}</span><span class="code c-${c||"N"}" style="${hv(hue)}">${c?LABEL[c]:"–"}</span><span class="w">${c==="X"?(pl.length?esc(pl.join(" + ")):NOSEC.has((S.staff.find(p=>p.name===n)||{}).team)?"In":"Not placed"):c&&c!=="O"?esc(WORD[c]):""}</span></div>`;}
     h+=`</div><button class="btn dark" data-act="qmonth" data-n="${esc(n)}">See ${esc(n)}'s month</button>`;
+  }else if(sh.type==="pw"){
+    h+=`<div class="top"><div><div class="t">Change my password</div><div class="s">At least 10 characters. Don't reuse a password from somewhere else.</div></div><button class="btn" data-act="close">Cancel</button></div>
+    <form class="form" id="pwForm"><label for="pw-a">New password</label><input type="password" id="pw-a" autocomplete="new-password" required>
+    <label for="pw-b">Type it again</label><input type="password" id="pw-b" autocomplete="new-password" required>
+    ${S.pwErr?`<span class="err" style="color:#c0281b;font-weight:700">${esc(S.pwErr)}</span>`:""}
+    <button class="btn dark" type="submit"${S.busy?" disabled":""}>${S.busy?"Saving…":"Save new password"}</button></form>`;
   }else if(sh.type==="push"){
     const pn=lsGet("nspca-rotatest-push"),st=pushState();
     h+=`<div class="top"><div><div class="t">Notifications</div><div class="s">Get a notification on this phone when your own days on the rota change.</div></div><button class="btn" data-act="close">Close</button></div>`;
     if(st==="unsupported") h+=`<p>This browser can't show notifications. On an Android phone use Chrome. On an iPhone, add the rota to your home screen first.</p>`;
     else if(st==="ios-browser") h+=`<p><b>On an iPhone, notifications only work from the home screen.</b></p><p>In Safari tap <b>Share</b>, then <b>Add to Home Screen</b>. Open the rota from the new icon and come back here.</p>`;
     else if(pn) h+=`<p>Notifications are on for <b>${esc(pn)}</b> on this phone.</p><button class="btn" data-act="pushoff"${S.busy?" disabled":""}>Turn off</button>`;
-    else h+=`<div class="form"><label for="push-name">Your name on the rota</label><select id="push-name">${activeStaff().map(p=>`<option${p.name===S.who?" selected":""}>${esc(p.name)}</option>`).join("")}</select>
-      <button class="btn dark" data-act="pushon"${S.busy?" disabled":""}>${S.busy?"Turning on…":"Turn on notifications"}</button></div>`;
+    else if(!S.session) h+=`<p>Sign in first, so notifications come to the right person.</p><button class="btn dark" data-act="signin">Sign in</button>`;
+    else if(!S.myName) h+=`<p>Your login isn't linked to a name on the rota yet. Ask an admin to link it.</p>`;
+    else h+=`<div class="form"><p style="margin:0">For <b>${esc(S.myName)}</b> on this phone.</p>
+      <button class="btn dark" data-act="pushme"${S.busy?" disabled":""}>${S.busy?"Turning on…":"Turn on notifications"}</button></div>`;
     if(S.pushErr) h+=`<div class="form"><span class="err">${esc(S.pushErr)}</span></div>`;
   }else if(sh.type==="cover"){
     const sec=sh.secs[sh.at],x=fromIso(sh.d),have=inOn(sh.d,sec).length,need=minOf(sec);
@@ -1239,7 +1258,7 @@ function render(){
   if(!S.isAdmin&&banner.includes("notready")&&(S.view==="day"||S.view==="week"))body="";
   if(!S.isAdmin&&S.view==="person"&&mstate(mkey(S.my.y,S.my.m))==="draft")body=notReady(ML[S.my.m]);
   app.innerHTML=header()+banner+body+footer();
-  const keep=["si-email","si-pass"].map(id=>{const e=document.getElementById(id);return e?[id,e.value]:null}).filter(Boolean),foc=document.activeElement&&document.activeElement.id;
+  const keep=["si-email","si-pass","pw-a","pw-b"].map(id=>{const e=document.getElementById(id);return e?[id,e.value]:null}).filter(Boolean),foc=document.activeElement&&document.activeElement.id;
   document.getElementById("overlay").innerHTML=overlay();
   for(const [id,v] of keep){const e=document.getElementById(id);if(e&&v)e.value=v}
   document.getElementById("bnav").innerHTML=bottomNav();
@@ -1263,6 +1282,15 @@ function render(){
   if(nm) nm.oninput=()=>{if(S.sheet)S.sheet.msg=nm.value;const pv=document.getElementById("notify-prev");if(pv)pv.textContent=nm.value};
   const an=document.getElementById("ask-note");
   if(an) an.oninput=()=>{if(S.sheet)S.sheet.note=an.value};
+  const pf=document.getElementById("pwForm");
+  if(pf) pf.onsubmit=async e=>{e.preventDefault();const a=document.getElementById("pw-a").value,b2=document.getElementById("pw-b").value;
+    S.pwErr=a.length<10?"Use at least 10 characters.":a!==b2?"The two passwords don't match.":"";if(S.pwErr){render();return}
+    S.busy=true;render();
+    try{const r=await fetch(CONFIG.url+"/auth/v1/user",{method:"PUT",headers:{apikey:CONFIG.key,Authorization:"Bearer "+(await bearer()),"Content-Type":"application/json"},body:JSON.stringify({password:a})});
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.msg||j.error_description||j.message||"error "+r.status);
+      S.sheet=null;S.note="Password changed. Use the new one next time you sign in.";S.noteErr=false}
+    catch(err){S.pwErr=/same/i.test(err.message)?"That's the same as your current password.":/weak|short|characters/i.test(err.message)?"That password is too weak. Try a longer one.":"Couldn't change it ("+err.message+")."}
+    S.busy=false;render()};
   const f=document.getElementById("signinForm");
   if(f){f.onsubmit=e=>{e.preventDefault();S.siEmail=document.getElementById("si-email").value.trim();signIn(S.siEmail,document.getElementById("si-pass").value)};
     const em=document.getElementById("si-email"),pw=document.getElementById("si-pass");
@@ -1342,7 +1370,7 @@ async function signIn(email,pass){
 }
 function signOut(){
   if(pendCount()){S.note="Publish or undo your changes before signing out.";S.noteErr=true;render();return}
-  S.toast="";dropSession();clearData();S.view=["staff","me","requests","history"].includes(S.view)?"day":S.view;S.note="Signed out.";S.noteErr=false;go();
+  S.toast="";dropSession();clearData();lsSet("nspca-rotatest-cache",null);S.view=["staff","me","requests","history"].includes(S.view)?"day":S.view;S.note="Signed out.";S.noteErr=false;go();
 }
 async function publish(opt={}){
   if(!pendCount()||(S.busy&&!opt.inner)) return false;
@@ -1357,7 +1385,7 @@ async function publish(opt={}){
     if(ups.length) await api("rota_status?on_conflict=day,name",{method:"POST",body:ups,prefer:"resolution=merge-duplicates,return=minimal"});
     for(const x of dels) await api("rota_status?day=eq."+x.day+"&name=eq."+encodeURIComponent(x.name),{method:"DELETE",prefer:"return=minimal"});
     if(pls.length) await api("rota_place?on_conflict=day,section",{method:"POST",body:pls,prefer:"resolution=merge-duplicates,return=minimal"});
-    let p=null;if(!draftOnly){try{p=await api("rota_published",{method:"POST",body:{by_email:S.session.email},prefer:"return=representation"})}catch(e){}}
+    let p=null;if(!draftOnly){try{await api("rota_published",{method:"POST",body:{by_email:S.session.email},prefer:"return=minimal"})}catch(e){}}
     for(const x of ups) S.status.set(sk(x.day,x.name),x.code);
     for(const x of dels) S.status.delete(sk(x.day,x.name));
     for(const x of pls) S.place.set(pk(x.day,x.section),x.names);
@@ -1537,6 +1565,7 @@ document.addEventListener("click",async e=>{
       else if(code==="X"&&was!=="X"&&!pl.length){S.note=n+" is in on "+dayLong(x)+". Place them on the Day tab."}
       render();break}
     case "copyweek":copyWeek();break;
+    case "pwopen":S.sheet={type:"pw"};S.pwErr="";render();setTimeout(()=>{const a=document.getElementById("pw-a");if(a)a.focus()},60);break;
     case "histload":loadHistory();break;
     case "histmore":S.hist.n+=150;render();break;
     case "sdates":S.sheet={type:"sdates",n:el.dataset.n};render();break;
