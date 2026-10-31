@@ -573,6 +573,9 @@ async function api(path,opt={}){
   const t=await r.text(); return t?JSON.parse(t):null;
 }
 
+async function apiAll(path){ // Supabase sends at most 1,000 rows at a time, so ask page by page
+  const out=[];for(let off=0;;off+=1000){const r=await api(path+"&limit=1000&offset="+off)||[];out.push(...r);if(r.length<1000)return out}
+}
 /* ---------- data ---------- */
 function cacheSave(){
   lsSet("nspca-rota-cache",{signed:!!S.session,staff:S.staff,pub:S.pub,
@@ -593,11 +596,13 @@ async function loadBase(){
     api("rota_published?select=at&order=at.desc&limit=1")]);
   S.staff=staff||[]; S.pub=(pub&&pub[0])||null;
   try{const ms=await api("rota_months?select=month,state");S.months=Object.fromEntries((ms||[]).map(r=>[r.month,r.state]))}catch(e){S.months=S.months||{}}
+  try{const ws=await api("rota_weeks?select=week,state");S.weeks=Object.fromEntries((ws||[]).map(r=>[r.week,r.state]))}catch(e){S.weeks=S.weeks||{}}
   try{const r=await api("rota_settings?select=value&key=eq.minimums");S.mins=(r&&r[0]&&r[0].value)||{}}catch(e){S.mins=S.mins||{}}
 }
 async function checkAdmin(){
   if(!S.session){S.isAdmin=false;return}
-  try{const r=await api("rota_admins?select=email");S.isAdmin=!!(r&&r.length)}catch(e){S.isAdmin=false}
+  S.adminKnown=false;
+  try{const r=await api("rota_admins?select=email");S.isAdmin=!!(r&&r.length);S.adminKnown=true}catch(e){S.isAdmin=false}
 }
 async function loadMe(){
   if(!S.session){S.myName=null;S.reqs=[];S.logins=[];return}
@@ -610,12 +615,12 @@ async function ensureRange(a,b){
   while(d<=b){months.push([d.getFullYear(),d.getMonth()]);d=new Date(d.getFullYear(),d.getMonth()+1,1)}
   const need=months.filter(([y,m])=>!S.loaded.has(mkey(y,m)));
   if(!need.length) return;
-  const tbl=S.session?"rota_status":"rota_public_status"; // reasons (A/L, SICK…) only for signed-in staff
+  const tbl=S.session&&(S.isAdmin||S.myName)?"rota_status":"rota_public_status"; // reasons (A/L, SICK…) only for linked staff and admins
   await Promise.all(need.map(async([y,m])=>{
     const f=iso(new Date(y,m,1)),l=iso(new Date(y,m+1,0)),pre=mkey(y,m)+"-";
     const [st,pl]=await Promise.all([
-      api(tbl+"?select=day,name,code&day=gte."+f+"&day=lte."+l+"&limit=5000"),
-      api("rota_place?select=day,section,names&day=gte."+f+"&day=lte."+l+"&limit=5000")]);
+      apiAll(tbl+"?select=day,name,code&day=gte."+f+"&day=lte."+l+"&order=day.asc,name.asc"),
+      apiAll("rota_place?select=day,section,names&day=gte."+f+"&day=lte."+l+"&order=day.asc,section.asc")]);
     for(const k of [...S.status.keys()]) if(k.startsWith(pre)) S.status.delete(k);
     for(const k of [...S.place.keys()]) if(k.startsWith(pre)) S.place.delete(k);
     for(const r of st||[]) S.status.set(sk(r.day,r.name),r.code);
@@ -639,10 +644,15 @@ async function go(){
 }
 
 /* ---------- effective values (published + your unpublished edits) ---------- */
-const stOf=(day,n)=>{const k=sk(day,n);return S.pend.status.has(k)?S.pend.status.get(k):(S.status.get(k)??null)};
-const plOf=(day,s)=>{const k=pk(day,s);return S.pend.place.has(k)?S.pend.place.get(k):(S.place.get(k)||[])};
+const hideDay=d=>!S.isAdmin&&isDraftDay(d);
+const stOf=(day,n)=>{if(hideDay(day))return null;const k=sk(day,n);return S.pend.status.has(k)?S.pend.status.get(k):(S.status.get(k)??null)};
+const plOf=(day,s)=>{if(hideDay(day))return [];const k=pk(day,s);return S.pend.place.has(k)?S.pend.place.get(k):(S.place.get(k)||[])};
 const mstate=k=>(S.months&&S.months[k])||"live";
-const isDraftDay=d=>mstate(d.slice(0,7))==="draft";
+const wkey=d=>iso(monday(fromIso(d)));
+const wstate=k=>(S.weeks&&S.weeks[k])||"live";
+const isDraftWeek=d=>wstate(wkey(d))==="draft";
+const isDraftMonth=d=>mstate(d.slice(0,7))==="draft";
+const isDraftDay=d=>isDraftMonth(d)||isDraftWeek(d);
 const isLockedDay=d=>mstate(d.slice(0,7))==="locked";
 function lockNote(d){const x=fromIso(d);S.note=ML[x.getMonth()]+" "+x.getFullYear()+" is locked. Unlock it on the Month tab to change it.";S.noteErr=true}
 const pendDays=()=>[...new Set([...S.pend.status.keys(),...S.pend.place.keys()].map(k=>k.slice(0,10)))];
@@ -851,9 +861,9 @@ function dayView(){
 
 function weekView(){
   const ws=monday(S.cur);const days=[...Array(7)].map((_,i)=>addDays(ws,i));
-  let h=`<div class="wkwrap"><div class="gridwrap" id="wgrid"><table class="wk"><thead><tr><th></th>${days.map(x=>`<th class="${isToday(x)?"cur":""}${bhOf(iso(x))?" bh":""}"${bhOf(iso(x))?` title="${esc(bhOf(iso(x)))}"`:""}>${DN[x.getDay()]} ${x.getDate()}${bhOf(iso(x))?` <span class="bhchip">BH</span>`:""}</th>`).join("")}</tr></thead><tbody>`;
+  let h=weekBar()+`<div class="wkwrap"><div class="gridwrap" id="wgrid"><table class="wk"><thead><tr><th></th>${days.map(x=>`<th class="${isToday(x)?"cur":""}${bhOf(iso(x))?" bh":""}"${bhOf(iso(x))?` title="${esc(bhOf(iso(x)))}"`:""}>${DN[x.getDay()]} ${x.getDate()}${bhOf(iso(x))?` <span class="bhchip">BH</span>`:""}</th>`).join("")}</tr></thead><tbody>`;
   SECTIONS.forEach(([s,hue],i)=>{
-    h+=`<tr><th style="${hv(hue)}">${esc(s)}</th>${days.map(x=>{const d=iso(x),names=shownOn(d,s);
+    h+=`<tr><th style="${hv(hue)}">${esc(s)}</th>${days.map(x=>{const d=iso(x),names=!S.isAdmin&&isDraftDay(d)?[]:shownOn(d,s);
       const inner=names.map(n=>{const c=stOf(d,n),off=S.editing&&c&&c!=="X";return `<div${off?' class="woff"':""}>${n===S.who?`<span class="me">${esc(n)}</span>`:esc(n)}${off?" · "+esc(LABEL[c]):""}</div>`}).join("");
       return S.editing&&!isLockedDay(d)
         ?`<td style="${hv(hue)}" class="wedit${placeChanged(d,s)?" chg":""}" data-act="wkcell" data-d="${d}" data-i="${i}" role="button" tabindex="0" aria-label="Change ${esc(s)} on ${esc(dayLong(x))}">${inner||'<span class="wadd">+ Add</span>'}</td>`
@@ -878,13 +888,26 @@ function monthBar(y,m){
   const btns=st==="draft"?b("live","Set live","dark"):st==="live"?b("locked","Lock")+b("draft",S.confirmRm==="ms"+k?"Tap again to hide it from staff":"Make draft","ghost"):b("live","Unlock");
   return `<div class="mstate ${st} noprint"><span class="mpill">${info[0]}</span><span class="mtxt">${esc(info[1])}</span><span class="mbtns">${btns}</span></div>`;
 }
+function weekBar(){
+  if(!S.isAdmin) return "";
+  const k=iso(monday(S.cur)),ds=[...Array(7)].map((_,i)=>iso(addDays(fromIso(k),i)));
+  if(ds.every(d=>isDraftMonth(d)||isLockedDay(d))) return "";
+  const st=wstate(k);if(st!=="draft"&&!S.editing) return "";
+  const b=(to,l,cls)=>`<button class="btn small${cls?" "+cls:""}" data-act="wstate" data-k="${k}" data-to="${to}"${S.busy?" disabled":""}>${l}</button>`;
+  const txt=st==="draft"?"Only admins can see this week. Changes save quietly, with no notifications.":"Staff can see this week.";
+  const btn=st==="draft"?b("live","Set live","dark"):b("draft",S.confirmRm==="ws"+k?"Tap again to hide it from staff":"Make week draft","ghost");
+  return `<div class="mstate ${st==="draft"?"draft":"live"} noprint"><span class="mpill">${st==="draft"?"Draft week":"Live"}</span><span class="mtxt">${esc(txt)}</span><span class="mbtns">${btn}</span></div>`;
+}
+function draftWeeksIn(y,m){const a=mkey(y,m);return Object.keys(S.weeks||{}).filter(k=>S.weeks[k]==="draft"&&[...Array(7)].some((_,i)=>iso(addDays(fromIso(k),i)).startsWith(a))).sort()}
 const notReady=(nm)=>`<div class="card notready"><b>${esc(nm)}'s rota isn't ready yet</b><span class="sub">It'll show here as soon as it's up. Turn on notifications to hear when it is.</span></div>`;
 function monthView(){
   const y=S.my.y,m=S.my.m,n=new Date(y,m+1,0).getDate();
   if(!S.isAdmin&&mstate(mkey(y,m))==="draft") return notReady(ML[m]);
+  const dws=mstate(mkey(y,m))==="draft"?[]:draftWeeksIn(y,m),dwTxt=dws.map(k=>"the week of "+dShort(k)).join(" and ");
+  const dwNote=!dws.length?"":S.isAdmin?`<div class="note draftnote noprint"><span><b>Draft week:</b> only admins can see ${esc(dwTxt)}. Set it live on the Week tab.</span></div>`:`<div class="note noprint"><span>The rota for ${esc(dwTxt)} isn't ready yet, so those days are blank.</span></div>`;
   const days=[...Array(n)].map((_,i)=>new Date(y,m,i+1));
   const tot=S.isAdmin;
-  let h=monthBar(y,m)+(S.editing&&S.isAdmin&&mstate(mkey(y,m))!=="locked"?`<div class="patrow noprint"><button class="btn" data-act="pattern">${svgCal} Fill ${ML[m]} from a pattern</button></div>`:"")+`<div class="gridwrap" id="mgrid"><table class="mo"><thead><tr><th class="nm">Name</th>${days.map(x=>`<th class="${isToday(x)?"cur":x.getDay()%6===0?"we":""}${bhOf(iso(x))?" bh":""}"${bhOf(iso(x))?` title="${esc(bhOf(iso(x)))}"`:""}><small>${bhOf(iso(x))?"BH":DN[x.getDay()]}</small>${x.getDate()}</th>`).join("")}${tot?`<th class="tot"><small>${MN[m]}</small>in</th><th class="tot wk" title="Weekend days in"><small>${MN[m]}</small>Wknd</th>`:""}</tr></thead><tbody>`;
+  let h=monthBar(y,m)+dwNote+(S.editing&&S.isAdmin&&mstate(mkey(y,m))!=="locked"?`<div class="patrow noprint"><button class="btn" data-act="pattern">${svgCal} Fill ${ML[m]} from a pattern</button></div>`:"")+`<div class="gridwrap" id="mgrid"><table class="mo"><thead><tr><th class="nm">Name</th>${days.map(x=>`<th class="${isToday(x)?"cur":x.getDay()%6===0?"we":""}${bhOf(iso(x))?" bh":""}"${bhOf(iso(x))?` title="${esc(bhOf(iso(x)))}"`:""}><small>${bhOf(iso(x))?"BH":DN[x.getDay()]}</small>${x.getDate()}</th>`).join("")}${tot?`<th class="tot"><small>${MN[m]}</small>in</th><th class="tot wk" title="Weekend days in"><small>${MN[m]}</small>Wknd</th>`:""}</tr></thead><tbody>`;
   const wkd=days.filter(x=>x.getDay()%6===0).map(iso),people=monthPeople();
   const wkCount=n=>wkd.filter(d=>stOf(d,n)==="X").length;
   const wkVals=people.map(p=>wkCount(p.name)).filter(v=>v>0),wkAvg=wkVals.length?wkVals.reduce((a,b)=>a+b,0)/wkVals.length:0;
@@ -932,7 +955,7 @@ const KIND_BTN=[["swap","Swap a shift"],["toil","TOIL"],["sick","Off sick"],["ca
 async function loadHistory(){
   S.hist=S.hist||{rows:[],err:"",loading:true,who:"",kind:"",n:150};S.hist.loading=true;render();
   try{const since=new Date(Date.now()-30*864e5).toISOString();
-    S.hist.rows=await api("rota_history?select=*&at=gte."+encodeURIComponent(since)+"&order=id.desc&limit=3000")||[];S.hist.err=""}
+    S.hist.rows=await apiAll("rota_history?select=*&at=gte."+encodeURIComponent(since)+"&order=id.desc");S.hist.err=""}
   catch(e){S.hist.rows=[];S.hist.err=/rota_history/.test(e.message)?"Run rota-history-and-dates.sql to start recording changes.":"Couldn't load the history ("+e.message+")."}
   S.hist.loading=false;render();
 }
@@ -961,6 +984,7 @@ function histText(g){
     return `<b>${esc(g.section)}</b> ${esc(dShort(g.d1))}: ${esc(ch.join(", ")||"reordered")}`}
   if(g.kind==="month"){const [y,m]=(g.note||"").split("-").map(Number),nm=ML[m-1]||g.note;
     return g.new==="live"?(g.old==="locked"?`Unlocked <b>${esc(nm)}</b>`:`Set <b>${esc(nm)}</b> live`):g.new==="locked"?`Locked <b>${esc(nm)}</b>`:`Made <b>${esc(nm)}</b> a draft`}
+  if(g.kind==="week") return g.new==="draft"?`Made the week of <b>${esc(dShort(g.d1))}</b> a draft`:`Set the week of <b>${esc(dShort(g.d1))}</b> live`;
   if(g.kind==="request") return `${g.new==="approved"?"Approved":g.new==="declined"?"Declined":"Changed"} <b>${esc(g.name)}</b>'s ${esc(KIND[g.note]||"request")}`;
   return esc(g.note||"");
 }
@@ -973,7 +997,7 @@ function historyView(){
   const gs=historyGroups(rows);
   let h=`<div class="card hist"><div class="hf"><span class="h">Last 30 days</span>
     <select id="hist-who" aria-label="Who"><option value="">Everyone</option>${people.map(n=>`<option${n===H.who?" selected":""}>${esc(n)}</option>`).join("")}</select>
-    <select id="hist-kind" aria-label="What"><option value="">Everything</option>${[["status","Rota days"],["place","Sections"],["month","Months"],["request","Requests"]].map(([v,l])=>`<option value="${v}"${v===H.kind?" selected":""}>${l}</option>`).join("")}</select>
+    <select id="hist-kind" aria-label="What"><option value="">Everything</option>${[["status","Rota days"],["place","Sections"],["month","Months"],["week","Weeks"],["request","Requests"]].map(([v,l])=>`<option value="${v}"${v===H.kind?" selected":""}>${l}</option>`).join("")}</select>
     <button class="btn small" data-act="histload"${H.loading?" disabled":""}>${H.loading?"Loading…":"Refresh"}</button></div>`;
   if(!gs.length) h+=`<span class="empty">${H.loading?"Loading…":"No changes yet."}</span>`;
   let lastDay="";
@@ -1157,7 +1181,7 @@ function overlay(){
       ?`<div class="rev"><b>${esc(r.n)}</b><span>${r.count>1?r.count+" days, "+esc(dShort(r.d1))+" – "+esc(dShort(r.d2)):esc(dShort(r.d1))}: ${esc(codeTxt(r.from))} → <b>${esc(codeTxt(r.to))}</b></span></div>`
       :`<div class="rev"><b>${esc(r.s)}</b><span>${esc(dShort(r.d1))}: ${r.add.map(n=>"+ "+esc(n)).concat(r.rm.map(n=>"− "+esc(n))).join(", ")||"no change"}</span></div>`).join("");
     if(rows.length>60) h+=`<div class="rev"><span>…and ${rows.length-60} more</span></div>`;
-    h+=`</div><div class="revnote">${dr?"This is a draft month, so <b>nobody is notified</b> and staff can't see it yet."
+    h+=`</div><div class="revnote">${dr?"This is a draft "+(pendDays().every(isDraftMonth)?"month":"week")+", so <b>nobody is notified</b> and staff can't see it yet."
       :who.length?`<b>Notified:</b> ${who.slice(0,8).map(esc).join(", ")}${who.length>8?" and "+(who.length-8)+" more":""} get their own message. Everyone else with notifications on gets “Rota updated”.`
       :"Nothing coming up has changed, so <b>nobody is notified</b>."}</div>
       ${dr?`<button class="btn dark" data-act="publish"${S.busy?" disabled":""}>Save draft</button>`
@@ -1262,7 +1286,10 @@ function render(){
   const wg0=document.getElementById("wgrid"),wgl=wg0?wg0.scrollLeft:null;
   let body="";
   const bannerFor=ds=>{const dr=ds.filter(isDraftDay),lk=ds.filter(isLockedDay);
-    if(dr.length){const x=fromIso(dr[0]);return S.isAdmin?`<div class="note draftnote noprint"><span><b>Draft:</b> only admins can see ${ML[x.getMonth()]}. Set it live on the Month tab.</span></div>`:notReady(ML[x.getMonth()])}
+    if(dr.length){const x=fromIso(dr[0]),mo=dr.find(isDraftMonth),nm=mo?ML[fromIso(mo).getMonth()]:"This week";
+      if(S.isAdmin){if(mo)return `<div class="note draftnote noprint"><span><b>Draft:</b> only admins can see ${nm}. Set it live on the Month tab.</span></div>`;
+        return S.view==="week"?"":`<div class="note draftnote noprint"><span><b>Draft week:</b> only admins can see this week. Set it live on the Week tab.</span></div>`}
+      return dr.length<ds.length?`<div class="note noprint"><span>${mo?nm+"'s rota isn't":"Some of these days aren't"} ready yet, so ${dr.length===1?"that day is":"those days are"} blank for now.</span></div>`:notReady(nm)}
     if(lk.length&&S.editing){const x=fromIso(lk[0]);return `<div class="note noprint"><span>${ML[x.getMonth()]} is locked, so these days can't be changed.</span></div>`}
     return ""};
   const banner=S.view==="day"?bannerFor([iso(S.cur)]):S.view==="week"?bannerFor([...Array(7)].map((_,i)=>iso(addDays(monday(S.cur),i)))):"";
@@ -1407,8 +1434,9 @@ async function publish(opt={}){
     if(!draftOnly) S.pub=(p&&p[0])||{at:new Date().toISOString(),by_email:S.session.email};
     ok=true;S.toast=opt.toast||(draftOnly?"Draft saved. Only admins can see it.":opt.quiet?"Published quietly. Nobody was notified.":"Published. Staff see it the next time they open the rota.");S.note="";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},7000);
     if(!draftOnly&&!opt.quiet) sendNotifications(people).then(n=>{if(n>0&&S.toast){S.toast=(opt.toast||"Published.").replace(/\.$/,"")+". "+n+(n===1?" phone":" phones")+" notified.";render()}});
-  }catch(e){S.note="Couldn't publish ("+e.message+"). Your changes are still here, so try again.";S.noteErr=true}
+  }catch(e){S.note="Couldn't publish ("+e.message+"). Some changes may have saved. Your changes are still here, so tap Publish again.";S.noteErr=true;S.loaded=new Set()}
   S.busy=false;render();
+  if(!ok) go();
   return ok;
 }
 
@@ -1472,7 +1500,7 @@ document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-act]");if(!el)return;
   const a=el.dataset.act;
   if(a==="scrim"){if(e.target===el&&S.sheet&&!S.busy){S.sheet=null;render()}return}
-  if(!["rmstaff","mstate","reqcancel"].includes(a)) S.confirmRm="";
+  if(!["rmstaff","mstate","wstate","reqcancel"].includes(a)) S.confirmRm="";
   if(["view","prevm","nextm","done","signout","edit"].includes(a)) S.sel=[];
   switch(a){
     case "view":if(el.dataset.v==="history")S.hist=null;S.view=el.dataset.v;S.decl=null;if(["me","requests"].includes(S.view)&&S.session)loadMe().then(()=>go());if(S.view==="person"&&!S.who){const f=activeStaff()[0];if(f)S.who=f.name}go();break;
@@ -1544,8 +1572,8 @@ document.addEventListener("click",async e=>{
       if(ti&&pp&&(pp.title||"")!==title){try{await api("rota_staff?name=eq."+encodeURIComponent(n),{method:"PATCH",body:{title:title||null},prefer:"return=minimal"});pp.title=title}
         catch(err){S.note="Couldn't save the job title ("+err.message+"). Run rota-titles.sql first.";S.noteErr=true;render();break}}
       if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){S.note="That doesn't look like an email address.";S.noteErr=true;render();break}
-      try{await api("rota_logins?name=eq."+encodeURIComponent(n),{method:"DELETE",prefer:"return=minimal"});
-        if(email) await api("rota_logins?on_conflict=email",{method:"POST",body:[{email,name:n}],prefer:"resolution=merge-duplicates,return=minimal"});
+      try{if(email) await api("rota_logins?on_conflict=email",{method:"POST",body:[{email,name:n}],prefer:"resolution=merge-duplicates,return=minimal"});
+        await api("rota_logins?name=eq."+encodeURIComponent(n)+(email?"&email=neq."+encodeURIComponent(email):""),{method:"DELETE",prefer:"return=minimal"});
         S.logins=S.logins.filter(x=>x.name!==n&&x.email!==email);if(email)S.logins.push({email,name:n});
         S.note=n+" saved"+(email?" · login "+email:" · no login linked")+".";S.noteErr=false;}
       catch(err){S.note="Couldn't save the login ("+err.message+").";S.noteErr=true}
@@ -1624,6 +1652,17 @@ document.addEventListener("click",async e=>{
         else S.note=to==="locked"?nm+" is locked. Nobody can change it until it's unlocked.":to==="draft"?nm+" is now a draft. Only admins can see it.":nm+" is unlocked.";}
       catch(err){S.note="Couldn't change the month ("+err.message+"). Has rota-months.sql been run?";S.noteErr=true}
       S.busy=false;render();break}
+    case "wstate":{const k=el.dataset.k,to=el.dataset.to,lbl="the week of "+dShort(k),wd=[...Array(7)].map((_,i)=>iso(addDays(fromIso(k),i)));
+      if(to!=="live"&&pendDays().some(d=>wd.includes(d))){S.note="Publish or undo your changes in "+lbl+" first.";S.noteErr=true;render();break}
+      const hasData=[...S.status.keys()].some(x=>wd.includes(x.slice(0,10)));
+      if(to==="draft"&&hasData&&S.confirmRm!=="ws"+k){S.confirmRm="ws"+k;render();break}
+      S.confirmRm="";S.busy=true;render();
+      try{await api("rota_weeks?on_conflict=week",{method:"POST",body:[{week:k,state:to,by_email:S.session.email,updated_at:new Date().toISOString()}],prefer:"resolution=merge-duplicates,return=minimal"});
+        const was=wstate(k);S.weeks=S.weeks||{};S.weeks[k]=to;S.noteErr=false;
+        if(to==="live"&&was==="draft"){S.note="";S.sheet={type:"notify",k:"week",msg:"The rota for "+weekLabel(fromIso(k))+" is up. Tap to see it.",url:"./#week-"+k}}
+        else S.note="The week of "+dShort(k)+" is now a draft. Only admins can see it.";}
+      catch(err){S.note="Couldn't change the week ("+err.message+"). Has rota-week-draft.sql been run?";S.noteErr=true}
+      S.busy=false;render();break}
     case "addstaff":{const name=(document.getElementById("ns").value||"").trim().replace(/\s+/g," "),team=document.getElementById("nt").value;
       if(!name){S.note="Type a name first.";S.noteErr=true;render();break}
       if(S.staff.some(p=>p.name.toLowerCase()===name.toLowerCase()&&p.active)){S.note=name+" is already on the staff list.";S.noteErr=true;render();break}
@@ -1668,7 +1707,7 @@ async function init(){
   if(!configured()){S.loading=false;render();return}
   try{await loadBase();if(S.session){await checkAdmin();await loadMe()}S.offline=false}catch(e){S.offline=true}
   applyHash();
-  if(!S.isAdmin&&pendCount()){S.pend={status:new Map(),place:new Map()};savePend()}
+  if(!S.isAdmin&&S.adminKnown&&pendCount()){S.pend={status:new Map(),place:new Map()};savePend()} // only once we know for sure this person isn't an admin
   if(S.isAdmin&&pendCount()){S.editing=true;S.note="You have unpublished changes from before.";S.noteErr=false}
   if(!S.offline) S.loaded=new Set();
   await go();
