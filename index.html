@@ -644,8 +644,9 @@ async function go(){
 }
 
 /* ---------- effective values (published + your unpublished edits) ---------- */
-const hideDay=d=>!S.isAdmin&&isDraftDay(d);
-const stOf=(day,n)=>{if(hideDay(day))return null;const k=sk(day,n);return S.pend.status.has(k)?S.pend.status.get(k):(S.status.get(k)??null)};
+const hideDay=d=>!S.isAdmin&&isDraftDay(d);          // draft month or draft week: no sections
+const hideMonthDay=d=>!S.isAdmin&&isDraftMonth(d);    // draft month only: no In/Off either
+const stOf=(day,n)=>{if(hideMonthDay(day))return null;const k=sk(day,n);return S.pend.status.has(k)?S.pend.status.get(k):(S.status.get(k)??null)};
 const plOf=(day,s)=>{if(hideDay(day))return [];const k=pk(day,s);return S.pend.place.has(k)?S.pend.place.get(k):(S.place.get(k)||[])};
 const mstate=k=>(S.months&&S.months[k])||"live";
 const wkey=d=>iso(monday(fromIso(d)));
@@ -894,7 +895,7 @@ function weekBar(){
   if(ds.every(d=>isDraftMonth(d)||isLockedDay(d))) return "";
   const st=wstate(k);if(st!=="draft"&&!S.editing) return "";
   const b=(to,l,cls)=>`<button class="btn small${cls?" "+cls:""}" data-act="wstate" data-k="${k}" data-to="${to}"${S.busy?" disabled":""}>${l}</button>`;
-  const txt=st==="draft"?"Only admins can see this week. Changes save quietly, with no notifications.":"Staff can see this week.";
+  const txt=st==="draft"?"Staff see In/Off on the Month, but not this week's sections. Changes save quietly, with no notifications.":"Staff can see this week.";
   const btn=st==="draft"?b("live","Set live","dark"):b("draft",S.confirmRm==="ws"+k?"Tap again to hide it from staff":"Make week draft","ghost");
   return `<div class="mstate ${st==="draft"?"draft":"live"} noprint"><span class="mpill">${st==="draft"?"Draft week":"Live"}</span><span class="mtxt">${esc(txt)}</span><span class="mbtns">${btn}</span></div>`;
 }
@@ -904,7 +905,7 @@ function monthView(){
   const y=S.my.y,m=S.my.m,n=new Date(y,m+1,0).getDate();
   if(!S.isAdmin&&mstate(mkey(y,m))==="draft") return notReady(ML[m]);
   const dws=mstate(mkey(y,m))==="draft"?[]:draftWeeksIn(y,m),dwTxt=dws.map(k=>"the week of "+dShort(k)).join(" and ");
-  const dwNote=!dws.length?"":S.isAdmin?`<div class="note draftnote noprint"><span><b>Draft week:</b> only admins can see ${esc(dwTxt)}. Set it live on the Week tab.</span></div>`:"";
+  const dwNote=!dws.length?"":S.isAdmin?`<div class="note draftnote noprint"><span><b>Draft week:</b> staff can see In/Off for ${esc(dwTxt)}, but not the sections yet. Set it live on the Week tab.</span></div>`:"";
   const days=[...Array(n)].map((_,i)=>new Date(y,m,i+1));
   const tot=S.isAdmin;
   let h=monthBar(y,m)+dwNote+(S.editing&&S.isAdmin&&mstate(mkey(y,m))!=="locked"?`<div class="patrow noprint"><button class="btn" data-act="pattern">${svgCal} Fill ${ML[m]} from a pattern</button></div>`:"")+`<div class="gridwrap" id="mgrid"><table class="mo"><thead><tr><th class="nm">Name</th>${days.map(x=>`<th class="${isToday(x)?"cur":x.getDay()%6===0?"we":""}${bhOf(iso(x))?" bh":""}"${bhOf(iso(x))?` title="${esc(bhOf(iso(x)))}"`:""}><small>${bhOf(iso(x))?"BH":DN[x.getDay()]}</small>${x.getDate()}</th>`).join("")}${tot?`<th class="tot"><small>${MN[m]}</small>in</th><th class="tot wk" title="Weekend days in"><small>${MN[m]}</small>Wknd</th>`:""}</tr></thead><tbody>`;
@@ -1181,7 +1182,7 @@ function overlay(){
       ?`<div class="rev"><b>${esc(r.n)}</b><span>${r.count>1?r.count+" days, "+esc(dShort(r.d1))+" – "+esc(dShort(r.d2)):esc(dShort(r.d1))}: ${esc(codeTxt(r.from))} → <b>${esc(codeTxt(r.to))}</b></span></div>`
       :`<div class="rev"><b>${esc(r.s)}</b><span>${esc(dShort(r.d1))}: ${r.add.map(n=>"+ "+esc(n)).concat(r.rm.map(n=>"− "+esc(n))).join(", ")||"no change"}</span></div>`).join("");
     if(rows.length>60) h+=`<div class="rev"><span>…and ${rows.length-60} more</span></div>`;
-    h+=`</div><div class="revnote">${dr?"This is a draft "+(pendDays().every(isDraftMonth)?"month":"week")+", so <b>nobody is notified</b> and staff can't see it yet."
+    h+=`</div><div class="revnote">${dr?(pendDays().every(isDraftMonth)?"This is a draft month, so <b>nobody is notified</b> and staff can't see it yet.":"This is a draft week, so <b>nobody is notified</b>. Staff see In/Off changes on the Month, but not the sections yet.")
       :who.length?`<b>Notified:</b> ${who.slice(0,8).map(esc).join(", ")}${who.length>8?" and "+(who.length-8)+" more":""} get their own message. Everyone else with notifications on gets “Rota updated”.`
       :"Nothing coming up has changed, so <b>nobody is notified</b>."}</div>
       ${dr?`<button class="btn dark" data-act="publish"${S.busy?" disabled":""}>Save draft</button>`
@@ -1288,7 +1289,7 @@ function render(){
   const bannerFor=ds=>{const dr=ds.filter(isDraftDay),lk=ds.filter(isLockedDay);
     if(dr.length){const x=fromIso(dr[0]),mo=dr.find(isDraftMonth),nm=mo?ML[fromIso(mo).getMonth()]:"This week";
       if(S.isAdmin){if(mo)return `<div class="note draftnote noprint"><span><b>Draft:</b> only admins can see ${nm}. Set it live on the Month tab.</span></div>`;
-        return S.view==="week"?"":`<div class="note draftnote noprint"><span><b>Draft week:</b> only admins can see this week. Set it live on the Week tab.</span></div>`}
+        return S.view==="week"?"":`<div class="note draftnote noprint"><span><b>Draft week:</b> staff can't see this week's sections yet. Set it live on the Week tab.</span></div>`}
       return dr.length<ds.length?"":notReady(nm)}
     if(lk.length&&S.editing){const x=fromIso(lk[0]);return `<div class="note noprint"><span>${ML[x.getMonth()]} is locked, so these days can't be changed.</span></div>`}
     return ""};
@@ -1660,7 +1661,7 @@ document.addEventListener("click",async e=>{
       try{await api("rota_weeks?on_conflict=week",{method:"POST",body:[{week:k,state:to,by_email:S.session.email,updated_at:new Date().toISOString()}],prefer:"resolution=merge-duplicates,return=minimal"});
         const was=wstate(k);S.weeks=S.weeks||{};S.weeks[k]=to;S.noteErr=false;
         if(to==="live"&&was==="draft"){S.note="";S.sheet={type:"notify",k:"week",msg:"The rota for "+weekLabel(fromIso(k))+" is up. Tap to see it.",url:"./#week-"+k}}
-        else S.note="The week of "+dShort(k)+" is now a draft. Only admins can see it.";}
+        else S.note="The week of "+dShort(k)+" is now a draft. Staff can't see its sections until you set it live.";}
       catch(err){S.note="Couldn't change the week ("+err.message+"). Has rota-week-draft.sql been run?";S.noteErr=true}
       S.busy=false;render();break}
     case "addstaff":{const name=(document.getElementById("ns").value||"").trim().replace(/\s+/g," "),team=document.getElementById("nt").value;
