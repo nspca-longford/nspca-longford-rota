@@ -558,7 +558,9 @@ async function refreshSession(){
     setSession(await r.json());
   }catch(e){ dropSession(); }
 }
-function dropSession(){S.session=null;S.isAdmin=false;S.editing=false;S.myName=null;S.reqs=[];S.logins=[];lsSet("nspca-rota-session",null)}
+function dropSession(){S.session=null;S.isAdmin=false;S.editing=false;S.myName=null;S.reqs=[];S.logins=[];lsSet("nspca-rota-session",null);
+  // nothing from this person stays on screen or in the cache; their unpublished edits stay saved under their email for when they sign back in
+  S.pend={status:new Map(),place:new Map()};S.sel=[];clearData();lsSet("nspca-rota-cache",null)}
 async function bearer(){
   if(!S.session) return CONFIG.key;
   if(S.session.expires_at*1000<Date.now()+60000) await refreshSession();
@@ -578,16 +580,17 @@ async function apiAll(path){ // Supabase sends at most 1,000 rows at a time, so 
 }
 /* ---------- data ---------- */
 function cacheSave(){
-  lsSet("nspca-rota-cache",{signed:!!S.session,staff:S.staff,pub:S.pub,
+  lsSet("nspca-rota-cache",{who:S.session?String(S.session.email).toLowerCase():null,staff:S.staff,pub:S.pub,
     status:[...S.status],place:[...S.place],loaded:[...S.loaded]});
 }
 function cacheLoad(){
   const c=lsGet("nspca-rota-cache"); if(!c) return;
-  if(!!c.signed!==!!S.session) return;
+  if((c.who||null)!==(S.session?String(S.session.email).toLowerCase():null)) return; // only your own cached copy
   S.staff=c.staff||[];S.pub=c.pub||null;S.status=new Map(c.status||[]);S.place=new Map(c.place||[]);
 }
-function savePend(){lsSet("nspca-rota-pending",{status:[...S.pend.status],place:[...S.pend.place]})}
-function loadPend(){const p=lsGet("nspca-rota-pending");if(p){S.pend.status=new Map(p.status||[]);S.pend.place=new Map(p.place||[])}}
+function savePend(){if(!S.session)return;lsSet("nspca-rota-pending",{email:S.session.email,status:[...S.pend.status],place:[...S.pend.place]})}
+function loadPend(){const p=lsGet("nspca-rota-pending");S.pend={status:new Map(),place:new Map()};
+  if(p&&S.session&&(!p.email||String(p.email).toLowerCase()===String(S.session.email).toLowerCase())){S.pend.status=new Map(p.status||[]);S.pend.place=new Map(p.place||[])}}
 function clearData(){S.status=new Map();S.place=new Map();S.loaded=new Set()}
 
 async function loadBase(){
@@ -657,7 +660,8 @@ const isDraftDay=d=>isDraftMonth(d)||isDraftWeek(d);
 const isLockedDay=d=>mstate(d.slice(0,7))==="locked";
 function lockNote(d){const x=fromIso(d);S.note=ML[x.getMonth()]+" "+x.getFullYear()+" is locked. Unlock it on the Month tab to change it.";S.noteErr=true}
 const pendDays=()=>[...new Set([...S.pend.status.keys(),...S.pend.place.keys()].map(k=>k.slice(0,10)))];
-const allDraft=()=>{const d=pendDays();return d.length>0&&d.every(isDraftDay)};
+const allDraft=()=>{const st=[...S.pend.status.keys()].map(k=>k.slice(0,10)),pl=[...S.pend.place.keys()].map(k=>k.slice(0,10));
+  return st.length+pl.length>0&&st.every(isDraftMonth)&&pl.every(isDraftDay)}; // In/Off shows on the month even in a draft week
 function setSt(day,n,code){if(isLockedDay(day)){lockNote(day);return false}const k=sk(day,n),srv=S.status.get(k)??null;if(code===srv)S.pend.status.delete(k);else S.pend.status.set(k,code);savePend()}
 function setPl(day,s,names){if(isLockedDay(day)){lockNote(day);return false}const k=pk(day,s),srv=S.place.get(k)||[];if(names.join("|")===srv.join("|"))S.pend.place.delete(k);else S.pend.place.set(k,names.slice());savePend()}
 const pendCount=()=>S.pend.status.size+S.pend.place.size;
@@ -1029,7 +1033,7 @@ function needsAttention(){
 }
 const dShort=d=>{const x=fromIso(d);return DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()]};
 function reqWhat(r){
-  const ds=(r.days||[]).slice().sort();
+  const ds=(r.days||[]).slice().sort();if(!ds.length) return (KIND[r.kind]||"Request")+" · no days";
   if(r.kind==="swap") return "Swap · "+dShort(ds[0])+" with "+r.swap_with;
   return KIND[r.kind]+" · "+(ds.length<=3?ds.map(dShort).join(", "):dShort(ds[0])+" – "+dShort(ds[ds.length-1])+" ("+ds.length+" days)");
 }
@@ -1283,6 +1287,10 @@ function overlay(){
 }
 
 function render(){
+  try{renderPage()}catch(e){console.error(e);const a=document.getElementById("app");
+    if(a)a.innerHTML=`<div class="card"><b>Something went wrong showing this page.</b><span class="sub">Tap Day at the bottom, or reload the rota. (${esc(e.message)})</span></div>`}
+}
+function renderPage(){
   const g=document.getElementById("mgrid"),gl=g?g.scrollLeft:null;
   const wg0=document.getElementById("wgrid"),wgl=wg0?wg0.scrollLeft:null;
   let body="";
@@ -1370,14 +1378,14 @@ async function pushOff(){
 }
 function changeSummary(){
   const t=iso(today0()),hit=new Map();
-  const add=(d,n)=>{if(d<t||isDraftDay(d))return;if(!hit.has(n))hit.set(n,new Set());hit.get(n).add(d)};
-  for(const k of S.pend.status.keys()){const i=k.indexOf("|");add(k.slice(0,i),k.slice(i+1))}
-  for(const [k,names] of S.pend.place){const i=k.indexOf("|"),d=k.slice(0,i),old=S.place.get(k)||[];
+  const add=(d,n)=>{if(d<t)return;if(!hit.has(n))hit.set(n,new Set());hit.get(n).add(d)};
+  for(const k of S.pend.status.keys()){const i=k.indexOf("|"),d=k.slice(0,i);if(!isDraftMonth(d))add(d,k.slice(i+1))}
+  for(const [k,names] of S.pend.place){const i=k.indexOf("|"),d=k.slice(0,i),old=S.place.get(k)||[];if(isDraftDay(d))continue;
     for(const n of names) if(!old.includes(n)) add(d,n);
     for(const n of old) if(!names.includes(n)) add(d,n);}
   const people={};
   for(const [n,days] of hit){
-    const lines=[...days].sort().map(d=>{const x=fromIso(d),c=stOf(d,n),pl=placedIn(d,n);
+    const lines=[...days].sort().map(d=>{const x=fromIso(d),c=stOf(d,n),pl=isDraftDay(d)?[]:placedIn(d,n);
       const what=c&&c!=="X"?WORD[c]:pl.length?pl.join(" + "):c==="X"?"X (in)":"not on the rota";
       return DN[x.getDay()]+" "+x.getDate()+" "+MN[x.getMonth()]+": "+what});
     people[n]={body:lines.slice(0,4).join("\n")+(lines.length>4?"\nand "+(lines.length-4)+" more days":""),url:"./#day-"+[...days].sort()[0]};
@@ -1403,14 +1411,19 @@ async function signIn(email,pass){
     const j=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(j.error_description||j.msg||"Email or password not recognised.");
     setSession(j); await checkAdmin(); clearData(); S.sheet=null; await loadMe();
-    S.note=S.isAdmin?"Signed in. Tap Edit rota to make changes.":"Signed in.";S.noteErr=false;
+    if(S.isAdmin){loadPend();if(pendCount())S.editing=true}
+    S.note=S.isAdmin?(pendCount()?"Signed in. You have unpublished changes from before.":"Signed in. Tap Edit rota to make changes."):"Signed in.";S.noteErr=false;
     await loadBase();
   }catch(e){S.signinErr=/invalid/i.test(e.message)?"Email or password not recognised.":e.message}
   S.busy=false; go();
   if(S.session&&!S.sheet) setTimeout(maybeSeason,300);
 }
-function signOut(){
+async function signOut(){
   if(pendCount()){S.note="Publish or undo your changes before signing out.";S.noteErr=true;render();return}
+  // the next person on this phone shouldn't get this person's notifications
+  try{if(lsGet("nspca-rota-push")&&"serviceWorker" in navigator){const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub){try{await api("rpc/rota_push_unsubscribe",{method:"POST",body:{p_endpoint:sub.endpoint}})}catch(e){} await sub.unsubscribe()}}}catch(e){}
+  lsSet("nspca-rota-push",null);
   S.toast="";dropSession();clearData();lsSet("nspca-rota-cache",null);S.view=["staff","me","requests","history"].includes(S.view)?"day":S.view;S.note="Signed out.";S.noteErr=false;go();
 }
 async function publish(opt={}){
@@ -1424,7 +1437,9 @@ async function publish(opt={}){
     for(const [k,c] of S.pend.status){const i=k.indexOf("|"),day=k.slice(0,i),name=k.slice(i+1);(c?ups:dels).push({day,name,code:c})}
     const pls=[...S.pend.place].map(([k,names])=>{const i=k.indexOf("|");return{day:k.slice(0,i),section:k.slice(i+1),names}});
     if(ups.length) await api("rota_status?on_conflict=day,name",{method:"POST",body:ups,prefer:"resolution=merge-duplicates,return=minimal"});
-    for(const x of dels) await api("rota_status?day=eq."+x.day+"&name=eq."+encodeURIComponent(x.name),{method:"DELETE",prefer:"return=minimal"});
+    for(const x of dels){if(S.status.get(sk(x.day,x.name))==null)continue; // nothing saved to remove
+      const r=await api("rota_status?day=eq."+x.day+"&name=eq."+encodeURIComponent(x.name),{method:"DELETE",prefer:"return=representation"});
+      if(!r||!r.length) throw new Error(dShort(x.day)+" for "+x.name+" wasn't cleared. The month may have been locked");}
     if(pls.length) await api("rota_place?on_conflict=day,section",{method:"POST",body:pls,prefer:"resolution=merge-duplicates,return=minimal"});
     let p=null;if(!draftOnly){try{await api("rota_published",{method:"POST",body:{by_email:S.session.email},prefer:"return=minimal"})}catch(e){}}
     for(const x of ups) S.status.set(sk(x.day,x.name),x.code);
@@ -1435,7 +1450,7 @@ async function publish(opt={}){
     if(!draftOnly) S.pub=(p&&p[0])||{at:new Date().toISOString(),by_email:S.session.email};
     ok=true;S.toast=opt.toast||(draftOnly?"Draft saved. Only admins can see it.":opt.quiet?"Published quietly. Nobody was notified.":"Published. Staff see it the next time they open the rota.");S.note="";clearTimeout(window._tt);window._tt=setTimeout(()=>{S.toast="";render()},7000);
     if(!draftOnly&&!opt.quiet) sendNotifications(people).then(n=>{if(n>0&&S.toast){S.toast=(opt.toast||"Published.").replace(/\.$/,"")+". "+n+(n===1?" phone":" phones")+" notified.";render()}});
-  }catch(e){S.note="Couldn't publish ("+e.message+"). Some changes may have saved. Your changes are still here, so tap Publish again.";S.noteErr=true;S.loaded=new Set()}
+  }catch(e){S.note=!S.session?"Your sign-in ran out, so nothing more was published. Sign in again and your changes will be back.":"Couldn't publish ("+e.message+"). Some changes may have saved. Your changes are still here, so tap Publish again.";S.noteErr=true;S.loaded=new Set()}
   S.busy=false;render();
   if(!ok) go();
   return ok;

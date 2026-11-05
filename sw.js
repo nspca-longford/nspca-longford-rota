@@ -1,10 +1,13 @@
 // Network first, so staff always get the newest rota; falls back to the last copy when offline.
-const C='rota-v7';
+const C='rota-v8';
 self.addEventListener('install',e=>self.skipWaiting());
-self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+self.addEventListener('activate',e=>e.waitUntil((async()=>{
+  for(const k of await caches.keys()) if(k!==C) await caches.delete(k);   // drop old copies of the app
+  await self.clients.claim();
+})()));
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;
-  e.respondWith(fetch(e.request).then(r=>{const k=r.clone();caches.open(C).then(c=>c.put(e.request,k));return r})
+  e.respondWith(fetch(e.request).then(r=>{if(r.ok){const k=r.clone();caches.open(C).then(c=>c.put(e.request,k))}return r})
     .catch(()=>caches.match(e.request)));
 });
 
